@@ -44,7 +44,7 @@ sudo apt remove cmake
 wget https://github.com/Kitware/CMake/releases/download/v3.18.4/cmake-3.18.4.tar.gz
 tar -xvf cmake-3.18.4.tar.gz
 cd cmake-3.18.4
-./bootstrap --parallele=8
+./bootstrap --parallel=8
 make -j8
 sudo make install -j8
 ```
