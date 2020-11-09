@@ -20,13 +20,13 @@ sudo apt install build-essential pkg-config gdb libgoogle-glog-dev\
 Install g++-7
 
 ```bash
-sudo apt update -qq
+sudo apt update
 
-sudo apt install build-essential pkg-config gdb 
-sudo apt install -yq software-properties-common
+sudo apt install -Y build-essential pkg-config gdb 
+sudo apt install -y software-properties-common
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-sudo apt update -qq
-sudo apt install -yq gcc-7 g++-7
+sudo apt update
+sudo apt install -y gcc-7 g++-7
 sudo update-alternatives \
 	--install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
 	--slave /usr/bin/g++ g++ /usr/bin/g++-7 \
