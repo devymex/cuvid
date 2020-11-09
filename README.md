@@ -81,13 +81,11 @@ cd opencv-4.3.0
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON \
-	-DCMAKE_INSTALL_PREFIX=/usr/local \
-	-DBUILD_opencv_python3=ON -DENABLE_CXX11=ON \
-	-DWITH_1394=OFF -DCMAKE_VERBOSE_MAKEFILE=ON \
-	-DWITH_IPP=ON -DWITH_TBB=ON\
-	-DWITH_OPENMP=ON -DWITH_PTHREADS_PF=ON\
+	-DCMAKE_INSTALL_PREFIX=/usr/local -DENABLE_CXX11=ON -DWITH_1394=OFF \
 	-DCMAKE_SKIP_BUILD_RPATH=OFF -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
+	-DWITH_IPP=ON -DWITH_TBB=ON -DWITH_OPENMP=ON -DWITH_PTHREADS_PF=ON \
 	-DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DOPENCV_GENERATE_PKGCONFIG=ON \
+	-DBUILD_opencv_python3=ON \
 	-DPYTHON3_LIBRARY=$(python3 -c "from distutils.sysconfig import get_config_var;from os.path import dirname,join ; print(join(dirname(get_config_var('LIBPC')),get_config_var('LDLIBRARY')), end='')") \
 	-DPYTHON3_NUMPY_INCLUDE_DIRS=$(python3 -c "import numpy; print(numpy.get_include(), end='')") \
 	-DPYTHON3_PACKAGES_PATH=$(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(), end='')") \
