@@ -129,7 +129,7 @@ void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
 
 void Prand::__WorkerProc() {
 	LOG(INFO) << "Start decoding...";
-	for ( ; m_bWorking ; ) {
+	for ( ; m_bWorking; ) {
 		AVPacket packet;
 		int64_t nRet = av_read_frame(m_pAVCtx, &packet);
 		if (nRet >= 0) {
