@@ -65,7 +65,6 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 	CHECK_NOTNULL(pPrand);
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
-
 	int64_t nFrameCnt = pPrand->GetFrame(gpuImg,
 			nWithJpeg > 0 ? &strJpeg : nullptr);
 	cv::Mat img;
@@ -104,20 +103,16 @@ static PyMethodDef prand_methods[] = {
 	{
 		"prand_create", PrandCreate, METH_VARARGS,
 		"Create a prand object."
-	},
-	{
+	}, {
 		"prand_start", PrandStart, METH_O,
 		"Start decoding."
-	},
-	{
+	}, {
 		"prand_stop", PrandStop, METH_O,
 		"Stop decoding."
-	},
-	{
+	}, {
 		"prand_set_jpeg_quality", PrandSetJpegQuality, METH_VARARGS,
 		"Set encoding quality of JPEG encoder."
-	},
-	{
+	}, {
 		"prand_get_frame", PrandGetFrame, METH_VARARGS,
 		"Get Frame."
 	},

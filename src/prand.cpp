@@ -54,7 +54,8 @@ Prand::Prand(std::string strURL, int nGpuID) {
 
 	CUDA_CHECK(cudaSetDevice(nGpuID));
 	m_pCudaDev.reset(new CudaDevice(nGpuID));
-	m_pDecoder.reset(new NvDecoder(m_pCudaDev->getContext(), true, codecID, false));
+	m_pDecoder.reset(new NvDecoder(m_pCudaDev->getContext(),
+			true, codecID, false));
 
 	CUDA_CHECK(cudaSetDevice(nGpuID));
 	CUDA_CHECK(cudaStreamCreate(&m_CudaStream));
@@ -169,12 +170,12 @@ int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 					m_JpegParams, &nvImg, NVJPEG_INPUT_BGRI,
 					frameImg.cols, frameImg.rows, m_CudaStream));
 			size_t nSize;
-			NVJPEG_CHECK(nvjpegEncodeRetrieveBitstream(m_JpegHandle, m_JpegState,
-					NULL, &nSize, m_CudaStream));
+			NVJPEG_CHECK(nvjpegEncodeRetrieveBitstream(m_JpegHandle,
+					m_JpegState, NULL, &nSize, m_CudaStream));
 			pJpegData->resize(nSize);
 			CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
-			NVJPEG_CHECK(nvjpegEncodeRetrieveBitstream(m_JpegHandle, m_JpegState,
-					(uint8_t*)(pJpegData->data()), &nSize, 0));
+			NVJPEG_CHECK(nvjpegEncodeRetrieveBitstream(m_JpegHandle, 
+					m_JpegState, (uint8_t*)(pJpegData->data()), &nSize, 0));
 			CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
 		}
 	}
