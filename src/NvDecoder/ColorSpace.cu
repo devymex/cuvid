@@ -397,3 +397,28 @@ void Bgra64ToP016(uint8_t *dpBgra, int nBgraPitch, uint8_t *dpP016, int nP016Pit
         <<<dim3((nWidth + 63) / 32 / 2, (nHeight + 3) / 2 / 2), dim3(32, 2)>>>
         (dpBgra, nBgraPitch, dpP016, nP016Pitch, nWidth, nHeight);
 }
+
+__global__ static void BGRA32ToBgr24Kernel(const uint8_t* dpBgra, uint8_t* dpBgr,
+		int nWidth, int nHeight, int nStride) {
+	const int x = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const int y = (blockIdx.y * blockDim.y) + threadIdx.y;
+	if(x < nWidth && y < nHeight) {
+		const uint8_t *pSrc = dpBgra + (y * nWidth + x) * 4;
+		uint8_t *pDst = dpBgr + y * nStride + x * 3;
+		pDst[0] = pSrc[0];
+		pDst[1] = pSrc[1];
+		pDst[2] = pSrc[2];
+	}
+}
+
+inline int DivUp(int a, int b) {
+	return (a % b != 0) ? (a / b + 1) : (a / b);
+}
+
+void BGRA32ToBgr24(const uint8_t* dpBgra, uint8_t* dpBgr,
+		int nWidth, int nHeight, int nStride) {
+	const dim3 blockDim(32, 8, 1);
+	const dim3 gridDim(DivUp(nWidth, blockDim.x), DivUp(nHeight, blockDim.y), 1);
+	BGRA32ToBgr24Kernel<<<gridDim, blockDim>>>(dpBgra, dpBgr,
+			nWidth, nHeight, nStride);
+}

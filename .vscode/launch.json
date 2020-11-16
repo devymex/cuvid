@@ -8,7 +8,7 @@
 			"name": "(gdb) Launch",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/prnd",
+			"program": "${workspaceFolder}/build/prand_test",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",

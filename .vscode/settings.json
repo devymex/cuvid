@@ -64,6 +64,8 @@
 		"string": "cpp",
 		"codecvt": "cpp",
 		"filesystem": "cpp",
-		"__nullptr": "cpp"
+		"__nullptr": "cpp",
+		"__locale": "cpp",
+		"__string": "cpp"
 	}
 }

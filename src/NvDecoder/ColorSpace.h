@@ -46,3 +46,6 @@ union RGBA64 {
         uint16_t r, g, b, a;
     } c;
 };
+
+void BGRA32ToBgr24(const uint8_t* dpBgra, uint8_t* dpBgr,
+		int nWidth, int nHeight, int nStride);

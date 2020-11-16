@@ -35,11 +35,13 @@ Prand::Prand(std::string strURL, int nGpuID) {
 
 	AVDictionary *dict = nullptr;
 	CHECK_GE(av_dict_set(&dict, "rtsp_transport", "tcp", 0), 0);
-	CHECK_GE(avformat_open_input(&m_pAVCtx, strURL.c_str(), nullptr, &dict), 0) << strURL;
+	CHECK_GE(avformat_open_input(&m_pAVCtx, strURL.c_str(),
+			nullptr, &dict), 0) << strURL;
 	CHECK_GE(avformat_find_stream_info(m_pAVCtx, nullptr), 0);
 
 	AVCodec *pAVDecoder;
-	int nBestStream = av_find_best_stream(m_pAVCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &pAVDecoder, 0);
+	int nBestStream = av_find_best_stream(m_pAVCtx, AVMEDIA_TYPE_VIDEO,
+			-1, -1, &pAVDecoder, 0);
 	CHECK_GE(nBestStream, 0);
 	// AVStream *pStream = m_pAVCtx->streams[nBestStream];
 	// LOG(INFO) << pStream->codec->width;
@@ -49,11 +51,33 @@ Prand::Prand(std::string strURL, int nGpuID) {
 
 	m_pCudaDev.reset(new CudaDevice(0));
 	m_pDecoder.reset(new NvDecoder(m_pCudaDev->getContext(), true, codecID, false));
+
+	CUDA_CHECK(cudaStreamCreate(&m_CudaStream));
+	NVJPEG_CHECK(nvjpegCreateSimple(&m_JpegHandle));
+	NVJPEG_CHECK(nvjpegEncoderStateCreate(m_JpegHandle,
+			&m_JpegState, m_CudaStream));
+	NVJPEG_CHECK(nvjpegEncoderParamsCreate(m_JpegHandle,
+			&m_JpegParams, m_CudaStream));
+
+	NVJPEG_CHECK(nvjpegEncoderParamsSetSamplingFactors(m_JpegParams,
+			NVJPEG_CSS_444, m_CudaStream));
+	NVJPEG_CHECK(nvjpegEncoderParamsSetEncoding(m_JpegParams,
+			NVJPEG_ENCODING_PROGRESSIVE_DCT_HUFFMAN, m_CudaStream));
+	NVJPEG_CHECK(nvjpegEncoderParamsSetQuality(m_JpegParams,
+			80, m_CudaStream));
+	NVJPEG_CHECK(nvjpegEncoderParamsSetOptimizedHuffman(m_JpegParams,
+			0, m_CudaStream));
+
 }
 
 Prand::~Prand() {
 	Stop();
 	avformat_close_input(&m_pAVCtx);
+
+	NVJPEG_CHECK(nvjpegEncoderParamsDestroy(m_JpegParams));
+	NVJPEG_CHECK(nvjpegEncoderStateDestroy(m_JpegState));
+	NVJPEG_CHECK(nvjpegDestroy(m_JpegHandle));
+	CUDA_CHECK(cudaStreamDestroy(m_CudaStream));
 }
 
 void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
@@ -66,10 +90,11 @@ void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
 	uint8_t *pSrc = m_pDecoder->GetFrame();
 	CHECK_NOTNULL(pSrc);
 
-	if (gpuImg.size() != imgSize || gpuImg.type() != CV_8UC4) {
-		gpuImg = cv::cuda::GpuMat(imgSize, CV_8UC4);
+	if (m_BGRATmp.size() != imgSize || m_BGRATmp.channels() != 4
+			|| m_BGRATmp.type() != CV_8UC4) {
+		m_BGRATmp = cv::cuda::GpuMat(imgSize, CV_8UC4);
 	}
-	uint8_t *pGpuImgBuf = gpuImg.ptr<uint8_t>();
+	uint8_t *pGpuImgBuf = m_BGRATmp.ptr<uint8_t>();
 	if (m_pDecoder->GetBitDepth() == 8) {
 		if (frameFormat == cudaVideoSurfaceFormat_YUV444)
 			YUV444ToColor32<BGRA32>(pSrc, imgSize.width, pGpuImgBuf,
@@ -85,6 +110,12 @@ void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
 			P016ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pGpuImgBuf,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
 	}
+	if (gpuImg.size() != imgSize || gpuImg.channels() != 3
+			|| m_BGRATmp.type() != CV_8UC3) {
+		gpuImg = cv::cuda::GpuMat(imgSize, CV_8UC3);
+	}
+	BGRA32ToBgr24(m_BGRATmp.data, gpuImg.data, imgSize.width, imgSize.height,
+			gpuImg.step);
 }
 
 void Prand::Start() {
@@ -116,18 +147,44 @@ void Prand::Stop() {
 	}
 }
 
-int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg) {
+void Prand::__EncoderTest() {
+	cv::cuda::GpuMat tmpImg(200, 300, CV_8UC1);
+	nvjpegImage_t nvTmpImg = { 0 };
+	nvTmpImg.channel[0] = tmpImg.data;
+	nvTmpImg.pitch[0] = tmpImg.step;
+	CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
+	NVJPEG_CHECK(nvjpegEncodeImage(m_JpegHandle, m_JpegState, m_JpegParams,
+			 &nvTmpImg, NVJPEG_INPUT_BGRI, 200, 300, m_CudaStream));
+	CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
+}
+
+int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	std::lock_guard<std::mutex> locker(m_Mutex);
 	if (!m_WorkingBuf.empty()) {
 		m_WorkingBuf.copyTo(frameImg);
+		if (pJpegData != nullptr) {
+			nvjpegImage_t nvImg = { 0 };
+			nvImg.channel[0] = frameImg.data;
+			nvImg.pitch[0] = frameImg.step;
+			NVJPEG_CHECK(nvjpegEncodeImage(m_JpegHandle, m_JpegState,
+					m_JpegParams, &nvImg, NVJPEG_INPUT_BGRI,
+					frameImg.cols, frameImg.rows, m_CudaStream));
+			size_t nSize;
+			NVJPEG_CHECK(nvjpegEncodeRetrieveBitstream(m_JpegHandle, m_JpegState,
+					NULL, &nSize, m_CudaStream));
+			pJpegData->resize(nSize);
+			CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
+			NVJPEG_CHECK(nvjpegEncodeRetrieveBitstream(m_JpegHandle, m_JpegState,
+					(uint8_t*)(pJpegData->data()), &nSize, 0));
+			CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
+		}
 	}
 	return m_nFrameCnt;
 }
 
-int64_t Prand::GetFrame(cv::Mat &frameImg) {
-	std::lock_guard<std::mutex> locker(m_Mutex);
-	if (!m_WorkingBuf.empty()) {
-		m_WorkingBuf.download(frameImg);
-	}
-	return m_nFrameCnt;
+void Prand::SetJpegQuality(int nQuality) {
+	CHECK_GT(nQuality, 0);
+	CHECK_LE(nQuality, 100);
+	NVJPEG_CHECK(nvjpegEncoderParamsSetQuality(m_JpegParams,
+			nQuality, m_CudaStream));
 }

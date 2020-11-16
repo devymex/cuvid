@@ -13,11 +13,10 @@ void PrandDestroy(PyObject *pCapsule) {
 	delete (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 }
 
-PyObject* PrandCreate(PyObject *self, PyObject *args) {
+PyObject* PrandCreate(PyObject *self, PyObject *pArgs) {
 	char *pURL = nullptr;
 	int nDevID = 0;
-	CHECK(PyArg_ParseTuple(args, "s|i", &pURL, &nDevID));
-
+	CHECK(PyArg_ParseTuple(pArgs, "s|i", &pURL, &nDevID));
 	LOG(INFO) << "URL: " << pURL << ", DevID: " << nDevID;
 
 	Prand *pPrand = new Prand(pURL, nDevID);
@@ -38,21 +37,39 @@ PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {
 	Py_RETURN_NONE;
 }
 
+PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
+	PyObject *pObj;
+	int nQuality = 0;
+	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nQuality));
+
+	auto pPrand = (Prand*)PyCapsule_GetPointer(pObj, "Prand");
+	CHECK_NOTNULL(pPrand);
+	pPrand->SetJpegQuality(nQuality);
+	Py_RETURN_NONE;
+}
+
 PyObject* PrandGetFrame(PyObject *self, PyObject *pCapsule) {
 	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 	CHECK_NOTNULL(pPrand);
-	cv::Mat img;
-	int64_t nFrameCnt = pPrand->GetFrame(img);
+	cv::cuda::GpuMat img;
+	std::string strJpeg;
+	int64_t nFrameCnt = pPrand->GetFrame(img, &strJpeg);
 
 	PyObject *pNpImg = nullptr;
+	PyObject *pNpJpeg = nullptr;
 	if (!img.empty()) {
-		npy_intp dims[3] = {img.rows, img.cols, img.channels()};
-		pNpImg = PyArray_SimpleNewFromData(3, dims, NPY_UBYTE, img.data);
+		npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
+		pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+		npy_intp dimsJpeg[3] = { (int)strJpeg.size() };
+		pNpJpeg = PyArray_SimpleNewFromData(1, dimsJpeg, NPY_UBYTE,
+				(void*)strJpeg.data());
 	} else {
 		pNpImg = Py_None;
 		Py_INCREF(pNpImg);
+		pNpJpeg = Py_None;
+		Py_INCREF(pNpJpeg);
 	}
-	return PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
+	return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pNpJpeg);
 }
 
 static PyMethodDef prand_methods[] = { 
@@ -69,8 +86,12 @@ static PyMethodDef prand_methods[] = {
 		"Stop decoding."
 	},
 	{
+		"prand_set_jpeg_quality", PrandSetJpegQuality, METH_VARARGS,
+		"Set encoding quality of JPEG encoder."
+	},
+	{
 		"prand_get_frame", PrandGetFrame, METH_O,
-		"GetFrame."
+		"Get Frame."
 	},
 	{NULL, NULL, 0, NULL}
 };
