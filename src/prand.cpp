@@ -120,7 +120,7 @@ void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
 		}
 	}
 	if (gpuImg.size() != imgSize || gpuImg.channels() != 3
-			|| m_BGRATmp.type() != CV_8UC3) {
+			|| gpuImg.type() != CV_8UC3) {
 		gpuImg = cv::cuda::GpuMat(imgSize, CV_8UC3);
 	}
 	BGRA32ToBgr24(m_BGRATmp.data, gpuImg.data, imgSize.width, imgSize.height,
