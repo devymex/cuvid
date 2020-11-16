@@ -32,7 +32,8 @@ extern "C" {
 			" failed: err_code=" << e; \
 	}}
 
-class Prand { // Python RTSP AV Nvidia Decoder
+// Python RTSP AV Nvidia Decoder
+class Prand {
 public:
 	Prand(std::string strURL, int nGpuID);
 	~Prand();
