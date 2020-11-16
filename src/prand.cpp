@@ -102,19 +102,21 @@ void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
 	}
 	uint8_t *pGpuImgBuf = m_BGRATmp.ptr<uint8_t>();
 	if (m_pDecoder->GetBitDepth() == 8) {
-		if (frameFormat == cudaVideoSurfaceFormat_YUV444)
+		if (frameFormat == cudaVideoSurfaceFormat_YUV444) {
 			YUV444ToColor32<BGRA32>(pSrc, imgSize.width, pGpuImgBuf,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
-		else // default assumed NV12
+		} else {
 			Nv12ToColor32<BGRA32>(pSrc, imgSize.width, pGpuImgBuf,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
+		}
 	} else {
-		if (frameFormat == cudaVideoSurfaceFormat_YUV444)
+		if (frameFormat == cudaVideoSurfaceFormat_YUV444) {
 			YUV444P16ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pGpuImgBuf,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
-		else // default assumed P016
+		} else {
 			P016ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pGpuImgBuf,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
+		}
 	}
 	if (gpuImg.size() != imgSize || gpuImg.channels() != 3
 			|| m_BGRATmp.type() != CV_8UC3) {
