@@ -162,6 +162,7 @@ int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	std::lock_guard<std::mutex> locker(m_Mutex);
 	if (!m_WorkingBuf.empty()) {
 		m_WorkingBuf.copyTo(frameImg);
+
 		if (pJpegData != nullptr) {
 			nvjpegImage_t nvImg = { 0 };
 			nvImg.channel[0] = frameImg.data;

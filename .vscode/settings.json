@@ -67,6 +67,11 @@
 		"__nullptr": "cpp",
 		"__locale": "cpp",
 		"__string": "cpp",
-		"ranges": "cpp"
+		"ranges": "cpp",
+		"*.ipp": "cpp",
+		"__node_handle": "cpp",
+		"__split_buffer": "cpp",
+		"queue": "cpp",
+		"stack": "cpp"
 	}
 }

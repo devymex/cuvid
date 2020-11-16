@@ -9,7 +9,7 @@
 extern "C" {
 
 void PrandDestroy(PyObject *pCapsule) {
-	LOG(INFO) << "Destructed";
+	LOG(INFO) << "Prand Destructed";
 	delete (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 }
 
@@ -66,19 +66,32 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 			gpuImg.download(img);
 		}
 		PyObject *pNpImg = Py_None;
+		PyObject *pJpeg = Py_None;
+#if 0
+		if (!img.empty()) {
+			npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
+			pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+			npy_intp dimsJpeg[1] = { (int)strJpeg.size() };
+			pJpeg = PyArray_SimpleNewFromData(1, dimsJpeg,
+					NPY_UBYTE, (void*)strJpeg.data());
+		} else {
+			Py_INCREF(pNpImg);
+			Py_INCREF(pJpeg);
+		}
+#else
 		if (!img.empty()) {
 			npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
 			pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
 		} else {
 			Py_INCREF(pNpImg);
 		}
-		PyObject *pObjJpeg = Py_None;
 		if (!strJpeg.empty()) {
-			pObjJpeg = PyBytes_FromStringAndSize(strJpeg.data(), strJpeg.size());
+			pJpeg = PyBytes_FromStringAndSize(strJpeg.data(), strJpeg.size());
 		} else {
-			Py_INCREF(pObjJpeg);
+			Py_INCREF(pJpeg);
 		}
-		return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pObjJpeg);
+#endif
+		return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pJpeg);
 	} else {
 		nFrameCnt = pPrand->GetFrame(gpuImg, &strJpeg);
 		cv::Mat img;
