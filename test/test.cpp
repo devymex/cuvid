@@ -9,7 +9,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 
 	const std::string strURL = "rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp";
 
-	Prand prand(strURL, 0);
+	Prand prand(strURL, 1);
 	prand.Start();
 	cv::cuda::GpuMat gpuImg;
 	cv::Mat img1, img2;
@@ -30,6 +30,8 @@ int main(int nArgCnt, char *ppArgs[]) {
 			if (nKey == 27) {
 				break;
 			}
+		} else {
+			usleep(1000);
 		}
 	}
 	return 0;

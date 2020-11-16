@@ -45,10 +45,11 @@ public:
 
 private:
 	void __DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg);
+	void __WorkerProc();
 
 private:
 	AVFormatContext *m_pAVCtx = nullptr;
-	int64_t m_nFrameCnt = 0;
+	std::atomic<int64_t> m_nFrameCnt;
 
 	std::unique_ptr<CudaDevice> m_pCudaDev;
 	std::unique_ptr<NvDecoder> m_pDecoder;
@@ -64,7 +65,6 @@ private:
 	nvjpegHandle_t m_JpegHandle;
 	nvjpegEncoderState_t m_JpegState;
 	nvjpegEncoderParams_t m_JpegParams;
-
 };
 
 #endif //__PRAND_HPP

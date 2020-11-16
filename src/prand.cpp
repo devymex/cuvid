@@ -28,6 +28,8 @@ inline cudaVideoCodec FFmpeg2NvCodecId(AVCodecID id) {
 }
 
 Prand::Prand(std::string strURL, int nGpuID) {
+	m_nFrameCnt = 0;
+
 	av_register_all();
 	CHECK_GE(avformat_network_init(), 0);
 
@@ -122,26 +124,27 @@ void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
 			gpuImg.step);
 }
 
+void Prand::__WorkerProc() {
+	LOG(INFO) << "Start decoding...";
+	for ( ; m_bWorking ; ) {
+		AVPacket packet;
+		int64_t ret = av_read_frame(m_pAVCtx, &packet);
+		if (ret >= 0) {
+			int64_t nDecFrames = m_pDecoder->Decode(packet.data, packet.size);
+			if (nDecFrames) {
+				std::lock_guard<std::mutex> locker(m_Mutex);
+				__DecodeFrame(packet, m_WorkingBuf);
+				m_nFrameCnt += nDecFrames;
+			}
+		} else {
+			LOG(WARNING) << "Lost frame: " << ret;
+		}
+		av_packet_unref(&packet);
+	}
+}
 void Prand::Start() {
 	m_bWorking = true;
-	m_Worker = std::thread([&] {
-		LOG(INFO) << "Start decoding...";
-		for ( ; m_bWorking ; ) {
-			AVPacket packet;
-			int64_t ret = av_read_frame(m_pAVCtx, &packet);
-			if (ret >= 0) {
-				int64_t nDecFrames = m_pDecoder->Decode(packet.data, packet.size);
-				if (nDecFrames) {
-					std::lock_guard<std::mutex> locker(m_Mutex);
-					__DecodeFrame(packet, m_WorkingBuf);
-					m_nFrameCnt += nDecFrames;
-				}
-			} else {
-				LOG(WARNING) << "Lost frame: " << ret;
-			}
-			av_packet_unref(&packet);
-		}
-	});
+	m_Worker = std::thread(&Prand::__WorkerProc, this);
 }
 
 void Prand::Stop() {

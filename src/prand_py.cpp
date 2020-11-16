@@ -100,7 +100,10 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 			Py_INCREF(pJpeg);
 		}
 #endif
-		return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pJpeg);
+		PyObject *pRet = PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pJpeg);
+		Py_XDECREF(pJpeg);
+		Py_XDECREF(pNpImg);
+		return pRet;
 	} else {
 		nFrameCnt = pPrand->GetFrame(gpuImg, &strJpeg);
 		cv::Mat img;
@@ -114,7 +117,9 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 		} else {
 			Py_INCREF(pNpImg);
 		}
-		return PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
+		PyObject *pRet = PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
+		Py_XDECREF(pNpImg);
+		return pRet;
 	}
 }
 
