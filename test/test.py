@@ -7,12 +7,11 @@ dec.start()
 while True:
 	frame_id, img1, jpeg = dec.get_frame(True)
 	if frame_id > 0:
-		jpeg1 = np.frombuffer(jpeg, dtype="uint8")
-		img2 = cv2.imdecode(jpeg1, cv2.IMREAD_COLOR)
-
 		img1 = cv2.resize(img1, (960, 540))
 		cv2.imshow("Downloaded from GPU", img1)
 
+		jpeg = np.frombuffer(jpeg, dtype="uint8")
+		img2 = cv2.imdecode(jpeg, cv2.IMREAD_COLOR)
 		img2 = cv2.resize(img2, (960, 540))
 		cv2.imshow("Decode From JPEG", img2)
 
