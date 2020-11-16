@@ -128,8 +128,8 @@ void Prand::__WorkerProc() {
 	LOG(INFO) << "Start decoding...";
 	for ( ; m_bWorking ; ) {
 		AVPacket packet;
-		int64_t ret = av_read_frame(m_pAVCtx, &packet);
-		if (ret >= 0) {
+		int64_t nRet = av_read_frame(m_pAVCtx, &packet);
+		if (nRet >= 0) {
 			int64_t nDecFrames = m_pDecoder->Decode(packet.data, packet.size);
 			if (nDecFrames) {
 				std::lock_guard<std::mutex> locker(m_Mutex);
@@ -137,7 +137,7 @@ void Prand::__WorkerProc() {
 				m_nFrameCnt += nDecFrames;
 			}
 		} else {
-			LOG(WARNING) << "Lost frame: " << ret;
+			LOG(WARNING) << "Lost one frame, nRet=" << nRet;
 		}
 		av_packet_unref(&packet);
 	}
@@ -159,8 +159,6 @@ int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	CUDA_CHECK(cudaSetDevice(m_pCudaDev->getDevice()));
 	if (!m_WorkingBuf.empty()) {
 		m_WorkingBuf.copyTo(frameImg);
-		//cudaMemset(frameImg.data, 0, frameImg.rows * frameImg.step);
-
 		if (pJpegData != nullptr) {
 			nvjpegImage_t nvImg = { 0 };
 			nvImg.channel[0] = frameImg.data;
