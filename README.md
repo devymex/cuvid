@@ -20,13 +20,13 @@ sudo apt install build-essential pkg-config gdb libgoogle-glog-dev\
 Install g++-7
 
 ```bash
-sudo apt update -qq
+sudo apt update
 
-sudo apt install build-essential pkg-config gdb 
-sudo apt install -yq software-properties-common
+sudo apt install -Y build-essential pkg-config gdb 
+sudo apt install -y software-properties-common
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-sudo apt update -qq
-sudo apt install -yq gcc-7 g++-7
+sudo apt update
+sudo apt install -y gcc-7 g++-7
 sudo update-alternatives \
 	--install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
 	--slave /usr/bin/g++ g++ /usr/bin/g++-7 \
@@ -44,7 +44,7 @@ sudo apt remove cmake
 wget https://github.com/Kitware/CMake/releases/download/v3.18.4/cmake-3.18.4.tar.gz
 tar -xvf cmake-3.18.4.tar.gz
 cd cmake-3.18.4
-./bootstrap --parallele=8
+./bootstrap --parallel=8
 make -j8
 sudo make install -j8
 ```
@@ -81,17 +81,15 @@ cd opencv-4.3.0
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON \
-	-DCMAKE_INSTALL_PREFIX=/usr/local \
-	-DBUILD_opencv_python3=ON -DENABLE_CXX11=ON \
-	-DWITH_1394=OFF -DCMAKE_VERBOSE_MAKEFILE=ON \
-	-DWITH_IPP=ON -DWITH_TBB=ON\
-	-DWITH_OPENMP=ON -DWITH_PTHREADS_PF=ON\
+	-DCMAKE_INSTALL_PREFIX=/usr/local -DENABLE_CXX11=ON -DWITH_1394=OFF \
 	-DCMAKE_SKIP_BUILD_RPATH=OFF -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
+	-DWITH_IPP=ON -DWITH_TBB=ON -DWITH_OPENMP=ON -DWITH_PTHREADS_PF=ON \
 	-DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DOPENCV_GENERATE_PKGCONFIG=ON \
-	-DPYTHON3_LIBRARY=$(python3 -c "from distutils.sysconfig import get_config_var;from os.path import dirname,join ; print(join(dirname(get_config_var('LIBPC')),get_config_var('LDLIBRARY')))") \
+	-DBUILD_opencv_python3=ON \
+	-DPYTHON3_LIBRARY=$(python3 -c "from distutils.sysconfig import get_config_var;from os.path import dirname,join ; print(join(dirname(get_config_var('LIBPC')),get_config_var('LDLIBRARY')), end='')") \
 	-DPYTHON3_NUMPY_INCLUDE_DIRS=$(python3 -c "import numpy; print(numpy.get_include(), end='')") \
 	-DPYTHON3_PACKAGES_PATH=$(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(), end='')") \
-	-DWITH_CUDA=ON -DENABLE_FAST_MATH=1 -DCUDA_FAST_MATH=1 -DWITH_CUBLAS=1 \
+	-DWITH_CUDA=ON -DENABLE_FAST_MATH=ON -DCUDA_FAST_MATH=ON -DWITH_CUBLAS=ON \
 	-DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-4.3.0/modules
 make all -j8
 sudo make install -j8
