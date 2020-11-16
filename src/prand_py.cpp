@@ -67,21 +67,30 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 		}
 		PyObject *pNpImg = Py_None;
 		PyObject *pJpeg = Py_None;
-#if 0
+		PyObject *pTmp = nullptr;
+#if 0 // OUTPUT AS NUMPY
 		if (!img.empty()) {
 			npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
-			pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+			pTmp = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+			pNpImg = PyArray_NewCopy((PyArrayObject*)pTmp, NPY_ANYORDER);
+			Py_DECREF(pTmp);
+
 			npy_intp dimsJpeg[1] = { (int)strJpeg.size() };
-			pJpeg = PyArray_SimpleNewFromData(1, dimsJpeg,
+			pTmp = PyArray_SimpleNewFromData(1, dimsJpeg,
 					NPY_UBYTE, (void*)strJpeg.data());
+			pJpeg = PyArray_NewCopy((PyArrayObject*)pTmp, NPY_ANYORDER);
+			Py_DECREF(pTmp);
+
 		} else {
 			Py_INCREF(pNpImg);
 			Py_INCREF(pJpeg);
 		}
-#else
+#else //OUTPUT AS BYTES
 		if (!img.empty()) {
 			npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
-			pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+			pTmp = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+			pNpImg = PyArray_NewCopy((PyArrayObject*)pTmp, NPY_ANYORDER);
+			Py_DECREF(pTmp);
 		} else {
 			Py_INCREF(pNpImg);
 		}

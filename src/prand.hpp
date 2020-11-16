@@ -45,7 +45,7 @@ public:
 
 private:
 	void __DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg);
-	void __EncoderTest();
+
 private:
 	AVFormatContext *m_pAVCtx = nullptr;
 	int64_t m_nFrameCnt = 0;

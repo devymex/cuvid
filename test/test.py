@@ -2,11 +2,14 @@
 
 import prand, cv2, numpy as np
 
-dec = prand.Prand('rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp', 1)
+dec = prand.Prand('rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp', 0)
+dec.set_jpeg_quality(1)
 dec.start()
+f = open('ndary.txt', 'w')
 while True:
 	frame_id, img1, jpeg = dec.get_frame(True)
 	if frame_id > 0:
+		print(len(jpeg))
 		jpeg = np.frombuffer(jpeg, dtype="uint8")
 		img2 = cv2.imdecode(jpeg, cv2.IMREAD_COLOR)
 
@@ -17,5 +20,5 @@ while True:
 		key = cv2.waitKey(1) & 0xFF
 		if key == 27:
 			break
-	#break
+
 dec.stop()

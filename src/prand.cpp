@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <cuda_runtime.h>
 
 extern "C" {
 #include <libavutil/pixdesc.h>
@@ -49,9 +50,11 @@ Prand::Prand(std::string strURL, int nGpuID) {
 	cudaVideoCodec codecID = FFmpeg2NvCodecId(pAVDecoder->id);
 	//LOG(INFO) << codecID;
 
-	m_pCudaDev.reset(new CudaDevice(0));
+	CUDA_CHECK(cudaSetDevice(nGpuID));
+	m_pCudaDev.reset(new CudaDevice(nGpuID));
 	m_pDecoder.reset(new NvDecoder(m_pCudaDev->getContext(), true, codecID, false));
 
+	CUDA_CHECK(cudaSetDevice(nGpuID));
 	CUDA_CHECK(cudaStreamCreate(&m_CudaStream));
 	NVJPEG_CHECK(nvjpegCreateSimple(&m_JpegHandle));
 	NVJPEG_CHECK(nvjpegEncoderStateCreate(m_JpegHandle,
@@ -81,6 +84,8 @@ Prand::~Prand() {
 }
 
 void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
+	CUDA_CHECK(cudaSetDevice(m_pCudaDev->getDevice()));
+
 	auto frameFormat = m_pDecoder->GetOutputFormat();
 	cv::Size imgSize(m_pDecoder->GetWidth(), m_pDecoder->GetHeight());
 	size_t nPitch = imgSize.width * 4;
@@ -147,21 +152,12 @@ void Prand::Stop() {
 	}
 }
 
-void Prand::__EncoderTest() {
-	cv::cuda::GpuMat tmpImg(200, 300, CV_8UC1);
-	nvjpegImage_t nvTmpImg = { 0 };
-	nvTmpImg.channel[0] = tmpImg.data;
-	nvTmpImg.pitch[0] = tmpImg.step;
-	CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
-	NVJPEG_CHECK(nvjpegEncodeImage(m_JpegHandle, m_JpegState, m_JpegParams,
-			 &nvTmpImg, NVJPEG_INPUT_BGRI, 200, 300, m_CudaStream));
-	CUDA_CHECK(cudaStreamSynchronize(m_CudaStream));
-}
-
 int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	std::lock_guard<std::mutex> locker(m_Mutex);
+	CUDA_CHECK(cudaSetDevice(m_pCudaDev->getDevice()));
 	if (!m_WorkingBuf.empty()) {
 		m_WorkingBuf.copyTo(frameImg);
+		//cudaMemset(frameImg.data, 0, frameImg.rows * frameImg.step);
 
 		if (pJpegData != nullptr) {
 			nvjpegImage_t nvImg = { 0 };
@@ -184,6 +180,7 @@ int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 }
 
 void Prand::SetJpegQuality(int nQuality) {
+	CUDA_CHECK(cudaSetDevice(m_pCudaDev->getDevice()));
 	CHECK_GT(nQuality, 0);
 	CHECK_LE(nQuality, 100);
 	NVJPEG_CHECK(nvjpegEncoderParamsSetQuality(m_JpegParams,
