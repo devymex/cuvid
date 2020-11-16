@@ -39,7 +39,7 @@ PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {
 
 PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
-	int nQuality = 0;
+	int nQuality = -1;
 	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nQuality));
 
 	auto pPrand = (Prand*)PyCapsule_GetPointer(pObj, "Prand");
@@ -48,41 +48,52 @@ PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
 	Py_RETURN_NONE;
 }
 
-PyObject* PrandGetFrame(PyObject *self, PyObject *pCapsule) {
+PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	int nWithJpeg = 0;
-	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nWithJpeg));
+	CHECK(PyArg_ParseTuple(pArgs, "O|i", &pObj, &nWithJpeg));
 
-	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
+	auto pPrand = (Prand*)PyCapsule_GetPointer(pObj, "Prand");
 	CHECK_NOTNULL(pPrand);
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
 
 	int64_t nFrameCnt;
-	if (nWithJpeg) {
+	if (nWithJpeg > 0) {
 		nFrameCnt = pPrand->GetFrame(gpuImg, &strJpeg);
+		cv::Mat img;
+		if (!gpuImg.empty()) {
+			gpuImg.download(img);
+		}
+		PyObject *pNpImg = Py_None;
+		if (!img.empty()) {
+			npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
+			pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+		} else {
+			Py_INCREF(pNpImg);
+		}
+		PyObject *pObjJpeg = Py_None;
+		if (!strJpeg.empty()) {
+			pObjJpeg = PyBytes_FromStringAndSize(strJpeg.data(), strJpeg.size());
+		} else {
+			Py_INCREF(pObjJpeg);
+		}
+		return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pObjJpeg);
 	} else {
-		nFrameCnt = pPrand->GetFrame(gpuImg);
+		nFrameCnt = pPrand->GetFrame(gpuImg, &strJpeg);
+		cv::Mat img;
+		if (!gpuImg.empty()) {
+			gpuImg.download(img);
+		}
+		PyObject *pNpImg = Py_None;
+		if (!img.empty()) {
+			npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
+			pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
+		} else {
+			Py_INCREF(pNpImg);
+		}
+		return PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
 	}
-
-	cv::Mat img;
-	if (!gpuImg.empty()) {
-		gpuImg.download(img);
-	}
-
-	PyObject *pNpImg = Py_None;
-	if (!img.empty()) {
-		npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
-		pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
-	} else {
-		Py_INCREF(pNpImg);
-	}
-	if (!strJpeg.empty()) {
-		PyObject *pNpJpeg = PyArray_SimpleNewFromData(1, { (int)strJpeg.size() },
-				NPY_UBYTE, (void*)strJpeg.data());
-		return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pNpJpeg);
-	}
-	return PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
 }
 
 static PyMethodDef prand_methods[] = { 
@@ -103,7 +114,7 @@ static PyMethodDef prand_methods[] = {
 		"Set encoding quality of JPEG encoder."
 	},
 	{
-		"prand_get_frame", PrandGetFrame, METH_O,
+		"prand_get_frame", PrandGetFrame, METH_VARARGS,
 		"Get Frame."
 	},
 	{NULL, NULL, 0, NULL}

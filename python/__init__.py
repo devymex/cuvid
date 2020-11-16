@@ -17,9 +17,19 @@ class Prand:
 	def set_jpeg_quality(self, quality):
 		prand.prand_set_jpeg_quality(self._prand, quality)
 
-	def get_frame(self):
-		frame_id, img, jpg = prand.prand_get_frame(self._prand)
-		if frame_id != self._frame_id:
-			self._frame_id += frame_id
-			return (self._frame_id, img, jpg)
-		return (0, None)
+	def get_frame(self, with_jpeg = True):
+		if with_jpeg:
+			frame_id, img, jpeg = prand.prand_get_frame(self._prand, True)
+			if frame_id != self._frame_id:
+				self._frame_id += frame_id
+				return (self._frame_id, img, jpeg)
+			else:
+				return (0, None, None)
+		else:
+			frame_id, img = prand.prand_get_frame(self._prand, False)
+			if frame_id != self._frame_id:
+				self._frame_id += frame_id
+				return (self._frame_id, img)
+			else:
+				return (0, None)
+
