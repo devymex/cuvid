@@ -13,17 +13,16 @@ A Python library that Decoding RTSP Stream to RGB frames with GPU.
 Install Basic Components
 
 ```bash
-sudo apt install build-essential pkg-config gdb libgoogle-glog-dev\
-	wget git libssl-dev locate
+sudo apt update
+sudo apt install build-essential pkg-config gdb libgoogle-glog-dev \
+	libgflags-dev libssl-dev libopenblas-dev libeigen3-dev libtbb-dev \
+	locate tmux git wget unzip htop net-tools autossh ffmpeg vim \
+	software-properties-common
 ```
 
 Install g++-7
 
 ```bash
-sudo apt update
-
-sudo apt install -Y build-essential pkg-config gdb 
-sudo apt install -y software-properties-common
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt update
 sudo apt install -y gcc-7 g++-7
@@ -51,7 +50,7 @@ sudo make install -j8
 
 ### 2.2. CUDA
 
-确保 cuda 为 10.2 版本，且安装在 /usr/local/cuda 。
+确保 cuda 为 10.2 版本，且安装在 `/usr/local/cuda` 。
 
 ### 2.3. FFmpeg
 
