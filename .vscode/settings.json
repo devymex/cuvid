@@ -73,6 +73,7 @@
 		"__split_buffer": "cpp",
 		"queue": "cpp",
 		"stack": "cpp",
-		"__config": "cpp"
+		"__config": "cpp",
+		"__atomic_derived": "cpp"
 	}
 }
