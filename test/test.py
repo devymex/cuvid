@@ -3,9 +3,8 @@
 import prand, cv2, numpy as np
 
 dec = prand.Prand('rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp', 0)
-dec.set_jpeg_quality(1)
+dec.set_jpeg_quality(15)
 dec.start()
-f = open('ndary.txt', 'w')
 while True:
 	frame_id, img1, jpeg = dec.get_frame(True)
 	if frame_id > 0:

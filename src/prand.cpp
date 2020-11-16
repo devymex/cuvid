@@ -69,8 +69,7 @@ Prand::Prand(std::string strURL, int nGpuID) {
 	NVJPEG_CHECK(nvjpegEncoderParamsSetQuality(m_JpegParams,
 			80, m_CudaStream));
 	NVJPEG_CHECK(nvjpegEncoderParamsSetOptimizedHuffman(m_JpegParams,
-			0, m_CudaStream));
-
+			1, m_CudaStream));
 }
 
 Prand::~Prand() {
