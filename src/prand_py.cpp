@@ -51,9 +51,11 @@ PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
 PyObject* PrandGetFrame(PyObject *self, PyObject *pCapsule) {
 	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 	CHECK_NOTNULL(pPrand);
-	cv::cuda::GpuMat img;
+	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
-	int64_t nFrameCnt = pPrand->GetFrame(img, &strJpeg);
+	int64_t nFrameCnt = pPrand->GetFrame(gpuImg, &strJpeg);
+	cv::Mat img;
+	gpuImg.download(img);
 
 	PyObject *pNpImg = nullptr;
 	PyObject *pNpJpeg = nullptr;
