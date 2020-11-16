@@ -18,8 +18,8 @@ class Prand:
 		prand.prand_set_jpeg_quality(self._prand, quality)
 
 	def get_frame(self):
-		frame_id, img = prand.prand_get_frame(self._prand)
+		frame_id, img, jpg = prand.prand_get_frame(self._prand)
 		if frame_id != self._frame_id:
 			self._frame_id += frame_id
-			return (self._frame_id, img)
+			return (self._frame_id, img, jpg)
 		return (0, None)

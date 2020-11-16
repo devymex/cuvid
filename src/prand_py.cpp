@@ -49,29 +49,40 @@ PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
 }
 
 PyObject* PrandGetFrame(PyObject *self, PyObject *pCapsule) {
+	PyObject *pObj;
+	int nWithJpeg = 0;
+	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nWithJpeg));
+
 	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 	CHECK_NOTNULL(pPrand);
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
-	int64_t nFrameCnt = pPrand->GetFrame(gpuImg, &strJpeg);
-	cv::Mat img;
-	gpuImg.download(img);
 
-	PyObject *pNpImg = nullptr;
-	PyObject *pNpJpeg = nullptr;
+	int64_t nFrameCnt;
+	if (nWithJpeg) {
+		nFrameCnt = pPrand->GetFrame(gpuImg, &strJpeg);
+	} else {
+		nFrameCnt = pPrand->GetFrame(gpuImg);
+	}
+
+	cv::Mat img;
+	if (!gpuImg.empty()) {
+		gpuImg.download(img);
+	}
+
+	PyObject *pNpImg = Py_None;
 	if (!img.empty()) {
 		npy_intp dimsImg[3] = { img.rows, img.cols, img.channels() };
 		pNpImg = PyArray_SimpleNewFromData(3, dimsImg, NPY_UBYTE, img.data);
-		npy_intp dimsJpeg[3] = { (int)strJpeg.size() };
-		pNpJpeg = PyArray_SimpleNewFromData(1, dimsJpeg, NPY_UBYTE,
-				(void*)strJpeg.data());
 	} else {
-		pNpImg = Py_None;
 		Py_INCREF(pNpImg);
-		pNpJpeg = Py_None;
-		Py_INCREF(pNpJpeg);
 	}
-	return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pNpJpeg);
+	if (!strJpeg.empty()) {
+		PyObject *pNpJpeg = PyArray_SimpleNewFromData(1, { (int)strJpeg.size() },
+				NPY_UBYTE, (void*)strJpeg.data());
+		return PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pNpJpeg);
+	}
+	return PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
 }
 
 static PyMethodDef prand_methods[] = { 

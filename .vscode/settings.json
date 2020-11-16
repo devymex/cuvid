@@ -66,6 +66,7 @@
 		"filesystem": "cpp",
 		"__nullptr": "cpp",
 		"__locale": "cpp",
-		"__string": "cpp"
+		"__string": "cpp",
+		"ranges": "cpp"
 	}
 }
