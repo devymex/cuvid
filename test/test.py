@@ -1,5 +1,11 @@
 #!/usr/bin/python3
-import prand, cv2, numpy as np
+import sys, prand, cv2, numpy as np
+
+assert(len(sys.argv) >= 2)
+rtsp_url = sys.argv[1]
+gpu_id = 0
+if len(sys.argv) > 2:
+	gpu_id = int(sys.argv[2])
 
 max_size = 480
 def limit_size(size):
@@ -9,7 +15,7 @@ def limit_size(size):
 		return (max_size, int((size[1] * max_size) / size[0]))
 	return size
 
-dec = prand.Prand('rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp', 0)
+dec = prand.Prand(rtsp_url, gpu_id)
 dec.set_jpeg_quality(15)
 dec.start()
 

@@ -9,14 +9,10 @@ CudaDevice::CudaDevice(int nGpuID) {
 	int nGpu = 0;
 	CUDA_DRVAPI_CALL(cuDeviceGetCount(&nGpu));
 	if (nGpuID < 0 || nGpuID >= nGpu) {
-		LOG(INFO) << "GPU ordinal out of range. Should be within [" << 0 << ",  " << nGpu - 1 << "]" << std::endl;
+		LOG(INFO) << "GPU ordinal out of range. Should be within ["
+				  << 0 << ",  " << nGpu - 1 << "]" << std::endl;
 	}
-
 	CUDA_DRVAPI_CALL(cuDeviceGet(cuDev.get(), nGpuID));
-	char szDeviceName[80];
-	CUDA_DRVAPI_CALL(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), *cuDev.get()));
-	LOG(INFO) << "GPU in use: " << szDeviceName << std::endl;
-
 	CUDA_DRVAPI_CALL(cuCtxCreate(cuCtx.get(), 0, *cuDev.get()));
 }
 

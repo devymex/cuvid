@@ -45,10 +45,14 @@ public:
 	void SetJpegQuality(int nQuality);
 
 private:
+	void __Initialize();
 	void __DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg);
 	void __WorkerProc();
 
 private:
+	std::string m_strURL;
+	int m_nGpuID = 0;
+
 	AVFormatContext *m_pAVCtx = nullptr;
 	std::atomic<int64_t> m_nFrameCnt;
 

@@ -5,11 +5,35 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "(gdb) Launch",
+			"name": "prand_test",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/prand_test",
-			"args": ["\"rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp\"", "0"],
+			"args": [
+				"\"rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp\""
+			],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		},
+		{
+			"name": "test.py",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "/usr/bin/python3",
+			"args": [
+				"${workspaceFolder}/test/test.py",
+				"\"rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp\"",
+				"0"],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
