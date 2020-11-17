@@ -17,7 +17,7 @@ PyObject* PrandCreate(PyObject *self, PyObject *pArgs) {
 	char *pURL = nullptr;
 	int nDevID = 0;
 	CHECK(PyArg_ParseTuple(pArgs, "s|i", &pURL, &nDevID));
-	LOG(INFO) << "URL: " << pURL << ", DevID: " << nDevID;
+	LOG(INFO) << "Prand Created, DevID=nDevID, URL=\"" << pURL << "\"";
 
 	Prand *pPrand = new Prand(pURL, nDevID);
 	return PyCapsule_New((void*)pPrand, "Prand", PrandDestroy);
@@ -52,7 +52,7 @@ PyObject* NDArrayFromData(const std::vector<long> &shape, uint8_t *pData) {
 	PyObject *pTmp = PyArray_SimpleNewFromData(shape.size(),
 			shape.data(), NPY_UBYTE, pData);
 	PyObject *pRet = PyArray_NewCopy((PyArrayObject*)pTmp, NPY_ANYORDER);
-	Py_DECREF(pTmp);
+	Py_XDECREF(pTmp);
 	return pRet;
 }
 
@@ -76,7 +76,8 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 	PyObject *pJpeg = Py_None;
 	PyObject *pRet = Py_None;
 	if (!img.empty()) {
-		pNpImg = NDArrayFromData({ img.rows, img.cols, img.channels() }, img.data);
+		std::vector<long> shape = { img.rows, img.cols, img.channels() }
+		pNpImg = NDArrayFromData(shape, img.data);
 	} else {
 		Py_XINCREF(pNpImg);
 	}
@@ -101,20 +102,20 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 
 static PyMethodDef prand_methods[] = { 
 	{
-		"prand_create", PrandCreate, METH_VARARGS,
-		"Create a prand object."
+		"prand_create", (PyCFunction)PrandCreate,
+		METH_VARARGS, "Create a prand object."
 	}, {
-		"prand_start", PrandStart, METH_O,
-		"Start decoding."
+		"prand_start", (PyCFunction)PrandStart,
+		METH_O, "Start decoding."
 	}, {
-		"prand_stop", PrandStop, METH_O,
-		"Stop decoding."
+		"prand_stop", (PyCFunction)PrandStop,
+		METH_O, "Stop decoding."
 	}, {
-		"prand_set_jpeg_quality", PrandSetJpegQuality, METH_VARARGS,
-		"Set encoding quality of JPEG encoder."
+		"prand_set_jpeg_quality", (PyCFunction)PrandSetJpegQuality,
+		METH_VARARGS, "Set encoding quality of JPEG encoder."
 	}, {
-		"prand_get_frame", PrandGetFrame, METH_VARARGS,
-		"Get Frame."
+		"prand_get_frame", (PyCFunction)PrandGetFrame,
+		METH_VARARGS, "Get Frame."
 	},
 	{NULL, NULL, 0, NULL}
 };

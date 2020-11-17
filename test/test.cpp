@@ -1,6 +1,5 @@
 #include <string>
 #include <opencv2/cudaimgproc.hpp>
-
 #include "../src/prand.hpp"
 
 cv::Size LimitSize(const cv::Size &in, int nMaxSize) {
@@ -29,12 +28,13 @@ int main(int nArgCnt, char *ppArgs[]) {
 	const int nMaxSize = 480;
 
 	Prand prand(ppArgs[1], nDevID);
+	prand.SetJpegQuality(75);
 	prand.Start();
 	cv::cuda::GpuMat gpuImg;
 	cv::Mat img1, img2;
 	std::string strJpegData;
-	for (int nLastFrame = 0; ; ) {
-		int nCurFrame = prand.GetFrame(gpuImg, &strJpegData);
+	for (int64_t nLastFrame = 0; ; ) {
+		int64_t nCurFrame = prand.GetFrame(gpuImg, &strJpegData);
 		if (nCurFrame != nLastFrame) {
 			nLastFrame = nCurFrame;
 			gpuImg.download(img1);
@@ -45,6 +45,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 			cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
 			cv::imshow("Downloaded from GPU", img1);
 			cv::imshow("Decode From JPEG", img2);
+			LOG(INFO) << "Frame " << nCurFrame;
 			int nKey = cv::waitKey(1) & 0xFF;
 			if (nKey == 27) {
 				break;

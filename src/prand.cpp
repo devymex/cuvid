@@ -200,21 +200,21 @@ void Prand::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
 			|| m_BGRATmp.type() != CV_8UC4) {
 		m_BGRATmp = cv::cuda::GpuMat(imgSize, CV_8UC4);
 	}
-	uint8_t *pGpuImgBuf = m_BGRATmp.ptr<uint8_t>();
+	uint8_t *pRGBATmp = m_BGRATmp.ptr<uint8_t>();
 	if (m_pDecoder->GetBitDepth() == 8) {
 		if (frameFormat == cudaVideoSurfaceFormat_YUV444) {
-			::YUV444ToColor32<BGRA32>(pSrc, imgSize.width, pGpuImgBuf,
+			::YUV444ToColor32<BGRA32>(pSrc, imgSize.width, pRGBATmp,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
 		} else {
-			::Nv12ToColor32<BGRA32>(pSrc, imgSize.width, pGpuImgBuf,
+			::Nv12ToColor32<BGRA32>(pSrc, imgSize.width, pRGBATmp,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
 		}
 	} else {
 		if (frameFormat == cudaVideoSurfaceFormat_YUV444) {
-			::YUV444P16ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pGpuImgBuf,
+			::YUV444P16ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pRGBATmp,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
 		} else {
-			::P016ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pGpuImgBuf,
+			::P016ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pRGBATmp,
 					nPitch, imgSize.width, imgSize.height, iMatrix);
 		}
 	}
