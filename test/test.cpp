@@ -3,13 +3,32 @@
 
 #include "../src/prand.hpp"
 
+cv::Size LimitSize(const cv::Size &in, int nMaxSize) {
+	cv::Size out = in;
+	if (out.width >= out.height && out.width > nMaxSize) {
+		out.height = int((out.height * nMaxSize) / (float)out.width);
+		out.width = nMaxSize;
+	}
+	if (out.height >= out.width && out.height > nMaxSize) {
+		out.width = int((out.width * nMaxSize) / (float)out.height);
+		out.height = nMaxSize;
+	}
+	return out;
+}
+
 int main(int nArgCnt, char *ppArgs[]) {
 	FLAGS_alsologtostderr = 1; 
 	google::InitGoogleLogging(ppArgs[0]);
 
-	const std::string strURL = "rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp";
+	CHECK_GE(nArgCnt, 2) << "Usage: " << ppArgs[0] << " <RTSP_URL> [GPU_ID]";
+	int nDevID = 0;
+	if (nArgCnt > 2) {
+		nDevID = std::atoi(ppArgs[2]);
+		CHECK_GE(nDevID, 0) << "Invalid GPU_ID";
+	}
+	const int nMaxSize = 480;
 
-	Prand prand(strURL, 1);
+	Prand prand(ppArgs[1], nDevID);
 	prand.Start();
 	cv::cuda::GpuMat gpuImg;
 	cv::Mat img1, img2;
@@ -22,8 +41,8 @@ int main(int nArgCnt, char *ppArgs[]) {
 			std::vector<uint8_t> bytes(strJpegData.size());
 			memcpy(bytes.data(), strJpegData.data(), strJpegData.size());
 			img2 = cv::imdecode(bytes, cv::IMREAD_COLOR);
-			cv::resize(img1, img1, img1.size() / 4);
-			cv::resize(img2, img2, img2.size() / 4);
+			cv::resize(img1, img1, LimitSize(img1.size(), nMaxSize));
+			cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
 			cv::imshow("Downloaded from GPU", img1);
 			cv::imshow("Decode From JPEG", img2);
 			int nKey = cv::waitKey(1) & 0xFF;

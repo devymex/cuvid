@@ -9,7 +9,7 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/prand_test",
-			"args": [],
+			"args": ["\"rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp\"", "0"],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
