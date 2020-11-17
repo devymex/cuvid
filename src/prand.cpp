@@ -1,3 +1,4 @@
+#include <memory>
 #include <glog/logging.h>
 #include <cuda_runtime.h>
 
@@ -37,6 +38,23 @@ inline cudaVideoCodec FFmpeg2NvCodecId(AVCodecID codecID) {
 	}
 }
 
+void DestroyCudaContext(CUcontext *pCuCtx) {
+	CUDA_DRVAPI_CALL(cuCtxDestroy(*pCuCtx));
+	delete pCuCtx;
+}
+
+std::shared_ptr<CUcontext> MakeCudaContext(int nGpuID) {
+	CUdevice cuDev;
+	CUDA_DRVAPI_CALL(cuDeviceGet(&cuDev, nGpuID));
+	CUcontext *pCuCtx = new CUcontext;
+	CUDA_DRVAPI_CALL(cuCtxCreate(pCuCtx, 0, cuDev));
+	return std::shared_ptr<CUcontext>(pCuCtx, &DestroyCudaContext);
+}
+
+void DestroyAVContext(AVFormatContext *pAVCtx) {
+	::avformat_close_input(&pAVCtx);
+}
+
 Prand::Prand(std::string strURL, int nGpuID)
 		: m_strURL(strURL), m_nGpuID(nGpuID)
 		, m_nFrameCnt(0), m_bWorking(false) {
@@ -60,9 +78,6 @@ Prand::Prand(std::string strURL, int nGpuID)
 
 Prand::~Prand() {
 	Stop();
-	if (m_pAVCtx != nullptr) {
-		::avformat_close_input(&m_pAVCtx);
-	}
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 	NVJPEG_CHECK(::nvjpegEncoderParamsDestroy(m_JpegParams));
 	NVJPEG_CHECK(::nvjpegEncoderStateDestroy(m_JpegState));
@@ -87,7 +102,7 @@ void Prand::Stop() {
 
 int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	std::lock_guard<std::mutex> locker(m_Mutex);
-	CUDA_CHECK(cudaSetDevice(m_pCudaDev->getDevice()));
+	CUDA_CHECK(cudaSetDevice(m_nGpuID));
 	if (!m_WorkingBuf.empty()) {
 		try {
 			m_WorkingBuf.copyTo(frameImg);
@@ -124,36 +139,37 @@ void Prand::SetJpegQuality(int nQuality) {
 }
 
 void Prand::__Initialize() {
-	m_pAVCtx = ::avformat_alloc_context();
-	CHECK_NOTNULL(m_pAVCtx);
+	CHECK(m_pAVCtx.get() == nullptr);
 
 	AVDictionary *pDict = nullptr;
 	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
-	CHECK_GE(::avformat_open_input(&m_pAVCtx, m_strURL.c_str(),
+	AVFormatContext *pAVCtxRaw = nullptr;
+	CHECK_GE(::avformat_open_input(&pAVCtxRaw, m_strURL.c_str(),
 			nullptr, &pDict), 0) << m_strURL;
+	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
 	::av_dict_free(&pDict);
-	CHECK_GE(::avformat_find_stream_info(m_pAVCtx, nullptr), 0);
 
+	CHECK_GE(::avformat_find_stream_info(m_pAVCtx.get(), nullptr), 0);
 	AVCodec *pAVDecoder = nullptr;
-	int nBestStream = ::av_find_best_stream(m_pAVCtx, AVMEDIA_TYPE_VIDEO,
+	int nBestStream = ::av_find_best_stream(m_pAVCtx.get(), AVMEDIA_TYPE_VIDEO,
 			-1, -1, &pAVDecoder, 0);
 	CHECK_GE(nBestStream, 0);
-	cudaVideoCodec codecID = ::FFmpeg2NvCodecId(pAVDecoder->id);
+	CHECK_NOTNULL(pAVDecoder);
 	// LOG(INFO) << codecID;
 	// AVStream *pStream = m_pAVCtx->streams[nBestStream];
 	// LOG(INFO) << pStream->codec->width;
 	// LOG(INFO) << pStream->codec->height;
 
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
-	m_pCudaDev.reset(new CudaDevice(m_nGpuID));
-	m_pDecoder.reset(new NvDecoder(m_pCudaDev->getContext(),
-			true, codecID, false));
+	m_pCuCtx = ::MakeCudaContext(m_nGpuID);
+	cudaVideoCodec codecID = ::FFmpeg2NvCodecId(pAVDecoder->id);
+	m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, codecID, false));
 }
 
 void Prand::__WorkerProc() {
 	for (; m_bWorking; ) {
 		AVPacket packet;
-		int64_t nRet = ::av_read_frame(m_pAVCtx, &packet);
+		int64_t nRet = ::av_read_frame(m_pAVCtx.get(), &packet);
 		if (nRet >= 0) {
 			int64_t nDecFrames = m_pDecoder->Decode(packet.data, packet.size);
 			if (nDecFrames) {

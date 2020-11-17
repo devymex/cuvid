@@ -16,7 +16,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#include "NvDecoder/cudevice.hpp"
+#include "NvDecoder/NvDecoder.h"
 
 #define MAKE_STR(name) (#name)
 
@@ -53,10 +53,10 @@ private:
 	std::string m_strURL;
 	int m_nGpuID = 0;
 
-	AVFormatContext *m_pAVCtx = nullptr;
+	std::shared_ptr<AVFormatContext> m_pAVCtx;
 	std::atomic<int64_t> m_nFrameCnt;
 
-	std::unique_ptr<CudaDevice> m_pCudaDev;
+	std::shared_ptr<CUcontext> m_pCuCtx;
 	std::unique_ptr<NvDecoder> m_pDecoder;
 	
 	cv::cuda::GpuMat m_WorkingBuf;
