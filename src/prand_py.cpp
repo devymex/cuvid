@@ -76,7 +76,7 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 	PyObject *pJpeg = Py_None;
 	PyObject *pRet = Py_None;
 	if (!img.empty()) {
-		std::vector<long> shape = { img.rows, img.cols, img.channels() }
+		std::vector<long> shape = { img.rows, img.cols, img.channels() };
 		pNpImg = NDArrayFromData(shape, img.data);
 	} else {
 		Py_XINCREF(pNpImg);
