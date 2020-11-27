@@ -68,8 +68,10 @@ Prand::Prand(std::string strURL, int nGpuID)
 
 	NVJPEG_CHECK(::nvjpegEncoderParamsSetSamplingFactors(m_JpegParams,
 			NVJPEG_CSS_444, m_CudaStream));
+#if CUDA_VERSION_MINOR > 1
 	NVJPEG_CHECK(::nvjpegEncoderParamsSetEncoding(m_JpegParams,
 			NVJPEG_ENCODING_PROGRESSIVE_DCT_HUFFMAN, m_CudaStream));
+#endif
 	NVJPEG_CHECK(::nvjpegEncoderParamsSetQuality(m_JpegParams,
 			80, m_CudaStream));
 	NVJPEG_CHECK(::nvjpegEncoderParamsSetOptimizedHuffman(m_JpegParams,
