@@ -46,6 +46,7 @@ public:
 
 private:
 	void __Initialize();
+	void __ReinitRTSP();
 	void __DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg);
 	void __WorkerProc();
 

@@ -141,14 +141,7 @@ void Prand::SetJpegQuality(int nQuality) {
 void Prand::__Initialize() {
 	CHECK(m_pAVCtx.get() == nullptr);
 
-	AVDictionary *pDict = nullptr;
-	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
-	AVFormatContext *pAVCtxRaw = nullptr;
-	CHECK_GE(::avformat_open_input(&pAVCtxRaw, m_strURL.c_str(),
-			nullptr, &pDict), 0) << m_strURL;
-	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
-	::av_dict_free(&pDict);
-
+	__ReinitRTSP();
 	CHECK_GE(::avformat_find_stream_info(m_pAVCtx.get(), nullptr), 0);
 	AVCodec *pAVDecoder = nullptr;
 	int nBestStream = ::av_find_best_stream(m_pAVCtx.get(), AVMEDIA_TYPE_VIDEO,
@@ -166,9 +159,19 @@ void Prand::__Initialize() {
 	m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, codecID, false));
 }
 
+void Prand::__ReinitRTSP() {
+	AVDictionary *pDict = nullptr;
+	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
+	AVFormatContext *pAVCtxRaw = nullptr;
+	CHECK_GE(::avformat_open_input(&pAVCtxRaw, m_strURL.c_str(),
+			nullptr, &pDict), 0) << m_strURL;
+	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
+	::av_dict_free(&pDict);
+}
+
 void Prand::__WorkerProc() {
 	for (; m_bWorking; ) {
-		AVPacket packet;
+		AVPacket packet = {0};
 		int64_t nRet = ::av_read_frame(m_pAVCtx.get(), &packet);
 		if (nRet >= 0) {
 			int64_t nDecFrames = m_pDecoder->Decode(packet.data, packet.size);
@@ -179,6 +182,7 @@ void Prand::__WorkerProc() {
 			}
 		} else {
 			LOG(WARNING) << "Lost one frame, nRet=" << nRet;
+			__ReinitRTSP();
 		}
 		av_packet_unref(&packet);
 	}
