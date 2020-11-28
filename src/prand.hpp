@@ -45,12 +45,12 @@ public:
 	void SetJpegQuality(int nQuality);
 
 private:
-	void __Initialize();
-	void __ReinitRTSP();
 	void __DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg);
 	void __WorkerProc();
 
 private:
+	enum class STATUS { STANDBY = 0, WORKING, FAILED };
+
 	std::string m_strURL;
 	int m_nGpuID = 0;
 
@@ -65,7 +65,7 @@ private:
 
 	std::thread m_Worker;
 	std::mutex m_Mutex;
-	std::atomic<bool> m_bWorking;
+	std::atomic<STATUS> m_Status;
 
 	cudaStream_t m_CudaStream;
 	nvjpegHandle_t m_JpegHandle;

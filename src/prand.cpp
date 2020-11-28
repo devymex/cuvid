@@ -57,9 +57,10 @@ void DestroyAVContext(AVFormatContext *pAVCtx) {
 
 Prand::Prand(std::string strURL, int nGpuID)
 		: m_strURL(strURL), m_nGpuID(nGpuID)
-		, m_nFrameCnt(0), m_bWorking(false) {
+		, m_nFrameCnt(0), m_Status(STATUS::STANDBY) {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 	CUDA_CHECK(::cudaStreamCreate(&m_CudaStream));
+
 	NVJPEG_CHECK(::nvjpegCreateSimple(&m_JpegHandle));
 	NVJPEG_CHECK(::nvjpegEncoderStateCreate(m_JpegHandle,
 			&m_JpegState, m_CudaStream));
@@ -76,6 +77,9 @@ Prand::Prand(std::string strURL, int nGpuID)
 			80, m_CudaStream));
 	NVJPEG_CHECK(::nvjpegEncoderParamsSetOptimizedHuffman(m_JpegParams,
 			1, m_CudaStream));
+
+	m_pCuCtx = ::MakeCudaContext(m_nGpuID);
+	CHECK_NOTNULL(m_pCuCtx.get());
 }
 
 Prand::~Prand() {
@@ -88,15 +92,38 @@ Prand::~Prand() {
 }
 
 void Prand::Start() {
-	if (m_pAVCtx == nullptr) {
-		__Initialize();
-	}
-	m_bWorking = true;
+	CHECK(m_Status == STATUS::STANDBY);
+
+	AVDictionary *pDict = nullptr;
+	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
+	AVFormatContext *pAVCtxRaw = nullptr;
+	CHECK_GE(::avformat_open_input(&pAVCtxRaw, m_strURL.c_str(),
+			nullptr, &pDict), 0) << m_strURL;
+	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
+	::av_dict_free(&pDict);
+
+	CHECK_GE(::avformat_find_stream_info(m_pAVCtx.get(), nullptr), 0);
+	AVCodec *pAVDecoder = nullptr;
+	int nBestStream = ::av_find_best_stream(m_pAVCtx.get(), AVMEDIA_TYPE_VIDEO,
+			-1, -1, &pAVDecoder, 0);
+	CHECK_GE(nBestStream, 0);
+	CHECK_NOTNULL(pAVDecoder);
+#ifdef NDEBUG
+	AVStream *pStream = m_pAVCtx->streams[nBestStream];
+	LOG(INFO) << "Decoder (" << codecID << ") [" << pStream->codec->width;
+			  << "x" << pStream->codec->height << "]";
+#endif
+
+	cudaVideoCodec codecID = ::FFmpeg2NvCodecId(pAVDecoder->id);
+	m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, codecID, false));
+
+	m_nFrameCnt = 0;
+	m_Status = STATUS::WORKING;
 	m_Worker = std::thread(&Prand::__WorkerProc, this);
 }
 
 void Prand::Stop() {
-	m_bWorking = false;
+	m_Status = STATUS::STANDBY;
 	if (m_Worker.joinable()) {
 		m_Worker.join();
 	}
@@ -105,12 +132,8 @@ void Prand::Stop() {
 int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	std::lock_guard<std::mutex> locker(m_Mutex);
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
-	if (!m_WorkingBuf.empty()) {
-		try {
-			m_WorkingBuf.copyTo(frameImg);
-		} catch (...) {
-			LOG(FATAL) << "m_WorkingBuf.copyTo(frameImg)";
-		}
+	if (!m_WorkingBuf.empty() && m_Status == STATUS::WORKING) {
+		m_WorkingBuf.copyTo(frameImg);
 		if (pJpegData != nullptr) {
 			nvjpegImage_t nvImg = { 0 };
 			nvImg.channel[0] = frameImg.data;
@@ -129,6 +152,9 @@ int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 			CUDA_CHECK(::cudaStreamSynchronize(m_CudaStream));
 		}
 	}
+	else if (m_Status == STATUS::FAILED) {
+		return -1;
+	}
 	return m_nFrameCnt;
 }
 
@@ -140,39 +166,8 @@ void Prand::SetJpegQuality(int nQuality) {
 			nQuality, m_CudaStream));
 }
 
-void Prand::__Initialize() {
-	CHECK(m_pAVCtx.get() == nullptr);
-
-	__ReinitRTSP();
-	CHECK_GE(::avformat_find_stream_info(m_pAVCtx.get(), nullptr), 0);
-	AVCodec *pAVDecoder = nullptr;
-	int nBestStream = ::av_find_best_stream(m_pAVCtx.get(), AVMEDIA_TYPE_VIDEO,
-			-1, -1, &pAVDecoder, 0);
-	CHECK_GE(nBestStream, 0);
-	CHECK_NOTNULL(pAVDecoder);
-	// LOG(INFO) << codecID;
-	// AVStream *pStream = m_pAVCtx->streams[nBestStream];
-	// LOG(INFO) << pStream->codec->width;
-	// LOG(INFO) << pStream->codec->height;
-
-	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
-	m_pCuCtx = ::MakeCudaContext(m_nGpuID);
-	cudaVideoCodec codecID = ::FFmpeg2NvCodecId(pAVDecoder->id);
-	m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, codecID, false));
-}
-
-void Prand::__ReinitRTSP() {
-	AVDictionary *pDict = nullptr;
-	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
-	AVFormatContext *pAVCtxRaw = nullptr;
-	CHECK_GE(::avformat_open_input(&pAVCtxRaw, m_strURL.c_str(),
-			nullptr, &pDict), 0) << m_strURL;
-	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
-	::av_dict_free(&pDict);
-}
-
 void Prand::__WorkerProc() {
-	for (; m_bWorking; ) {
+	for (; m_Status == STATUS::WORKING; ) {
 		AVPacket packet = {0};
 		int64_t nRet = ::av_read_frame(m_pAVCtx.get(), &packet);
 		if (nRet >= 0) {
@@ -183,8 +178,10 @@ void Prand::__WorkerProc() {
 				m_nFrameCnt += nDecFrames;
 			}
 		} else {
-			LOG(WARNING) << "Lost one frame, nRet=" << nRet;
-			__ReinitRTSP();
+#ifdef NDEBUG
+			LOG(WARNING) << "One frame lost, nRet=" << nRet;
+#endif
+			m_Status = STATUS::FAILED;
 		}
 		av_packet_unref(&packet);
 	}

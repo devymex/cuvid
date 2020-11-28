@@ -21,7 +21,7 @@ dec.start()
 
 while True:
 	frame_id, img1, jpeg = dec.get_frame(True)
-	if frame_id > 0:
+	if frame_id >= 0:
 		img1 = cv2.resize(img1, limit_size((img1.shape[1], img1.shape[0])))
 		cv2.imshow("Downloaded from GPU", img1)
 
@@ -33,5 +33,7 @@ while True:
 		key = cv2.waitKey(1) & 0xFF
 		if key == 27:
 			break
+	else:
+		dec.start()
 
 dec.stop()

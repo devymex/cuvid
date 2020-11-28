@@ -35,6 +35,11 @@ int main(int nArgCnt, char *ppArgs[]) {
 	std::string strJpegData;
 	for (int64_t nLastFrame = 0; ; ) {
 		int64_t nCurFrame = prand.GetFrame(gpuImg, &strJpegData);
+		if (nCurFrame < 0) {
+			prand.Start();
+			usleep(100 * 1000);
+			continue;
+		}
 		if (nCurFrame != nLastFrame) {
 			nLastFrame = nCurFrame;
 			gpuImg.download(img1);

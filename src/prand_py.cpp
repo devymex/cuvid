@@ -68,7 +68,7 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 	int64_t nFrameCnt = pPrand->GetFrame(gpuImg,
 			nWithJpeg > 0 ? &strJpeg : nullptr);
 	cv::Mat img;
-	if (!gpuImg.empty()) {
+	if (nFrameCnt >= 0 && !gpuImg.empty()) {
 		gpuImg.download(img);
 	}
 
