@@ -40,7 +40,8 @@ while True:
 	if frame_id < 0:
 		try_start()
 		continue
-	if frame_id != last_frame_id:
+	if frame_id > last_frame_id:
+		last_frame_id = frame_id
 		img1 = cv2.resize(img1, limited_size)
 		jpeg = np.frombuffer(jpeg, dtype="uint8")
 		img2 = cv2.imdecode(jpeg, cv2.IMREAD_COLOR)

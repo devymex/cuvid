@@ -40,7 +40,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 				usleep(100 * 1000);
 			}
 		}
-		if (nCurFrame != nLastFrame) {
+		if (nCurFrame > nLastFrame) {
 			nLastFrame = nCurFrame;
 			gpuImg.download(img1);
 			std::vector<uint8_t> bytes(strJpegData.size());
