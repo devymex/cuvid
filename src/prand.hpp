@@ -38,7 +38,7 @@ public:
 	Prand(std::string strURL, int nGpuID);
 	~Prand();
 
-	void Start();
+	bool Start(cv::Size *pFrameSize = nullptr);
 	void Stop();
 	int64_t GetFrame(cv::cuda::GpuMat &frameImg,
 			std::string *pJpegData = nullptr);

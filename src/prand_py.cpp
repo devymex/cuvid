@@ -26,8 +26,16 @@ PyObject* PrandCreate(PyObject *self, PyObject *pArgs) {
 PyObject* PrandStart(PyObject *self, PyObject *pCapsule) {
 	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 	CHECK_NOTNULL(pPrand);
-	pPrand->Start();
-	Py_RETURN_NONE;
+	cv::Size frameSize(0, 0);
+	PyObject *pyResult = Py_False;
+	if (pPrand->Start(&frameSize)) {
+		pyResult = Py_True;
+	}
+	auto pyFrameSize = PyTuple_Pack(2, PyLong_FromLong(frameSize.width),
+						PyLong_FromLong(frameSize.height));
+	auto pyRet = PyTuple_Pack(2, pyResult, pyFrameSize);
+	Py_XDECREF(pyFrameSize);
+	return pyRet;
 }
 
 PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {

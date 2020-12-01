@@ -91,14 +91,19 @@ Prand::~Prand() {
 	CUDA_CHECK(::cudaStreamDestroy(m_CudaStream));
 }
 
-void Prand::Start() {
+bool Prand::Start(cv::Size *pFrameSize) {
 	CHECK(m_Status == STATUS::STANDBY);
 
 	AVDictionary *pDict = nullptr;
 	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
 	AVFormatContext *pAVCtxRaw = nullptr;
-	CHECK_GE(::avformat_open_input(&pAVCtxRaw, m_strURL.c_str(),
-			nullptr, &pDict), 0) << m_strURL;
+	if (::avformat_open_input(&pAVCtxRaw, m_strURL.c_str(),
+			nullptr, &pDict) != 0) {
+#ifdef NDEBUG
+		LOG(WARNING) << "Can't open stream: \"" << m_strURL << "\"";
+#endif
+		return false;
+	}
 	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
 	::av_dict_free(&pDict);
 
@@ -108,8 +113,12 @@ void Prand::Start() {
 			-1, -1, &pAVDecoder, 0);
 	CHECK_GE(nBestStream, 0);
 	CHECK_NOTNULL(pAVDecoder);
-#ifdef NDEBUG
 	AVStream *pStream = m_pAVCtx->streams[nBestStream];
+	if (pFrameSize != nullptr) {
+		pFrameSize->width = pStream->codec->width;
+		pFrameSize->height = pStream->codec->height;
+	}
+#ifdef NDEBUG
 	LOG(INFO) << "Decoder (" << codecID << ") [" << pStream->codec->width;
 			  << "x" << pStream->codec->height << "]";
 #endif
@@ -120,6 +129,7 @@ void Prand::Start() {
 	m_nFrameCnt = 0;
 	m_Status = STATUS::WORKING;
 	m_Worker = std::thread(&Prand::__WorkerProc, this);
+	return true;
 }
 
 void Prand::Stop() {

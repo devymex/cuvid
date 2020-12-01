@@ -9,7 +9,7 @@ class Prand:
 		self._frame_id = 0
 
 	def start(self):
-		prand.prand_start(self._prand)
+		return prand.prand_start(self._prand)
 
 	def stop(self):
 		prand.prand_stop(self._prand)
