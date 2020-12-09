@@ -35,22 +35,29 @@ extern "C" {
 // Python RTSP AV Nvidia Decoder
 class Prand {
 public:
+	enum class STATUS { STANDBY = 0, WORKING = 1, FAILED = 2 };
+
 	Prand(std::string strURL, int nGpuID);
+
 	~Prand();
 
 	bool Start(cv::Size *pFrameSize = nullptr);
+
 	void Stop();
+
+	STATUS GetCurrentStatus() const;
+
 	int64_t GetFrame(cv::cuda::GpuMat &frameImg,
 			std::string *pJpegData = nullptr);
+
 	void SetJpegQuality(int nQuality);
 
 private:
 	void __DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg);
+
 	void __WorkerProc();
 
 private:
-	enum class STATUS { STANDBY = 0, WORKING, FAILED };
-
 	std::string m_strURL;
 	int m_nGpuID = 0;
 

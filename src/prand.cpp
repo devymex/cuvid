@@ -139,6 +139,13 @@ void Prand::Stop() {
 	}
 }
 
+Prand::STATUS Prand::GetCurrentStatus() const {
+	if (m_Worker.joinable()) {
+		return STATUS::WORKING;
+	}
+	return m_Status;
+}
+
 int64_t Prand::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	std::lock_guard<std::mutex> locker(m_Mutex);
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));

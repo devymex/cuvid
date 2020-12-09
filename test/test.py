@@ -24,6 +24,8 @@ frame_size = (0, 0)
 def try_start():
 	global frame_size
 	while True:
+		if dec.get_current_status() != 0:
+			dec.stop()
 		status = dec.start()
 		if status[0]:
 			break

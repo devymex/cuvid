@@ -45,6 +45,14 @@ PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {
 	Py_RETURN_NONE;
 }
 
+PyObject* PrandGetCurrentStatus(PyObject *self, PyObject *pCapsule) {
+	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
+	CHECK_NOTNULL(pPrand);
+	auto status = pPrand->GetCurrentStatus();
+	long nStatus = (status == Prand::STATUS::FAILED) ? -1 : (long)status;
+	return PyLong_FromLong(nStatus);
+}
+
 PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	int nQuality = -1;
@@ -114,16 +122,19 @@ static PyMethodDef prand_methods[] = {
 		METH_VARARGS, "Create a prand object."
 	}, {
 		"prand_start", (PyCFunction)PrandStart,
-		METH_O, "Start decoding."
+		METH_O, "Please make sure current status is STANDBY."
 	}, {
 		"prand_stop", (PyCFunction)PrandStop,
-		METH_O, "Stop decoding."
+		METH_O, "Stop streaming and clear fail status."
 	}, {
 		"prand_set_jpeg_quality", (PyCFunction)PrandSetJpegQuality,
-		METH_VARARGS, "Set encoding quality of JPEG encoder."
+		METH_VARARGS, "[JPEG quality] 1~100"
+	}, {
+		"prand_get_current_status", (PyCFunction)PrandGetCurrentStatus,
+		METH_VARARGS, "[Status] 1: STANDBY, 2: WORKING, -1: FAILED"
 	}, {
 		"prand_get_frame", (PyCFunction)PrandGetFrame,
-		METH_VARARGS, "Get Frame."
+		METH_VARARGS, "[Return code] 0: Empty -1: Failed, >0: Successed"
 	},
 	{NULL, NULL, 0, NULL}
 };

@@ -36,6 +36,9 @@ int main(int nArgCnt, char *ppArgs[]) {
 	for (int64_t nLastFrame = 0; ; ) {
 		int64_t nCurFrame = prand.GetFrame(gpuImg, &strJpegData);
 		if (nCurFrame < 0) {
+			if (prand.GetCurrentStatus() == Prand::STATUS::FAILED) {
+				prand.Stop();
+			}
 			for (; !prand.Start(); ) {
 				usleep(100 * 1000);
 			}

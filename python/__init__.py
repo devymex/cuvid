@@ -17,6 +17,9 @@ class Prand:
 	def set_jpeg_quality(self, quality):
 		prand.prand_set_jpeg_quality(self._prand, quality)
 
+	def get_current_status(self):
+		return prand.prand_get_current_status(self._prand)
+
 	def get_frame(self, with_jpeg = True):
 		if with_jpeg:
 			frame_id, img, jpeg = prand.prand_get_frame(self._prand, True)
@@ -32,4 +35,3 @@ class Prand:
 				return (self._frame_id, img)
 			else:
 				return (0, None)
-
