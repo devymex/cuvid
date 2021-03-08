@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/local/cuda/targets/x86_64-linux/include",
+                "/opt/libtorch/include/**",
+                "/usr/local/include/**",
+                "/usr/include/**"
+            ],
+            "defines": ["NDEBUG"],
+            "compilerPath": "/usr/bin/g++-7",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+            //"configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

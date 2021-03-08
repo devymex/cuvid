@@ -4,12 +4,12 @@ from . import prand
 import time
 
 class Prand:
-	def __init__(self, url, gpu_id):
-		self._prand = prand.prand_create(url, gpu_id)
+	def __init__(self, gpu_id):
+		self._prand = prand.prand_create(gpu_id)
 		self._frame_id = 0
 
-	def start(self):
-		return prand.prand_start(self._prand)
+	def start(self, url):
+		return prand.prand_start(self._prand, url)
 
 	def stop(self):
 		prand.prand_stop(self._prand)

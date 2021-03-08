@@ -10,7 +10,8 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/build/prand_test",
 			"args": [
-				"\"rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp\""
+				"\"rtsp://admin:Admin123@192.168.1.64:554/h264/ch1/main/av_stream\""
+				//"/home/devymex/Videos/dump.mp4"
 			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
@@ -32,7 +33,7 @@
 			"program": "/usr/bin/python3",
 			"args": [
 				"${workspaceFolder}/test/test.py",
-				"\"rtsp://10.201.105.94/user=admin&password=&channel=1&stream=0.sdp\"",
+				"\"rtsp://admin:Admin123@192.168.1.64:554/h264/ch1/main/av_stream\"",
 				"0"],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",

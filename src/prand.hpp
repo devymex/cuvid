@@ -36,12 +36,14 @@ extern "C" {
 class Prand {
 public:
 	enum class STATUS { STANDBY = 0, WORKING = 1, FAILED = 2 };
+	enum class READ_MODE {AUTO, BLOCK, ASYNC};
 
-	Prand(std::string strURL, int nGpuID);
+	Prand(int nGpuID);
 
 	~Prand();
 
-	bool Start(cv::Size *pFrameSize = nullptr);
+	std::pair<bool, cv::Size> Start(const std::string &strURL,
+			READ_MODE readMode = READ_MODE::AUTO);
 
 	void Stop();
 
@@ -57,12 +59,19 @@ private:
 
 	void __WorkerProc();
 
+	void __EncodeJPEG(cv::cuda::GpuMat &frameImg, std::string *pJpegData);
+
 private:
-	std::string m_strURL;
 	int m_nGpuID = 0;
+	bool m_bBlocking = false;
 
 	std::shared_ptr<AVFormatContext> m_pAVCtx;
+	std::shared_ptr<AVBSFContext> m_pAVBsfc;
 	std::atomic<int64_t> m_nFrameCnt;
+	AVPacket m_FilterPacket;
+	cudaVideoCodec m_CurCodecId;
+	double m_dTimeBase;
+	int m_nStreamId;
 
 	std::shared_ptr<CUcontext> m_pCuCtx;
 	std::unique_ptr<NvDecoder> m_pDecoder;

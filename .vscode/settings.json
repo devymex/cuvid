@@ -1,5 +1,8 @@
 {
-	"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+	//"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+	"cmake.configureSettings": {
+		"CMAKE_BUILD_TYPE": "${buildType}"
+	},
 	"files.associations": {
 		"cctype": "cpp",
 		"clocale": "cpp",
@@ -77,6 +80,14 @@
 		"__atomic_derived": "cpp",
 		"__hash_table": "cpp",
 		"__tree": "cpp",
-		"__tuple": "cpp"
+		"__tuple": "cpp",
+		"forward_list": "cpp",
+		"unordered_set": "cpp",
+		"hash_map": "cpp",
+		"hash_set": "cpp",
+		"slist": "cpp",
+		"__functional_base": "cpp",
+		"locale": "cpp",
+		"*.cuh": "cpp"
 	}
 }

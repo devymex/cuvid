@@ -9,26 +9,34 @@
 extern "C" {
 
 void PrandDestroy(PyObject *pCapsule) {
+#ifdef NDEBUG
 	LOG(INFO) << "Prand Destructed";
+#endif
 	delete (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 }
 
 PyObject* PrandCreate(PyObject *self, PyObject *pArgs) {
-	char *pURL = nullptr;
 	int nDevID = 0;
-	CHECK(PyArg_ParseTuple(pArgs, "s|i", &pURL, &nDevID));
-	LOG(INFO) << "Prand Created, DevID=nDevID, URL=\"" << pURL << "\"";
+	CHECK(PyArg_ParseTuple(pArgs, "i", &nDevID));
 
-	Prand *pPrand = new Prand(pURL, nDevID);
+#ifdef NDEBUG
+	LOG(INFO) << "Prand Created, DevID=nDevID";
+#endif
+
+	Prand *pPrand = new Prand(nDevID);
 	return PyCapsule_New((void*)pPrand, "Prand", PrandDestroy);
 }
 
-PyObject* PrandStart(PyObject *self, PyObject *pCapsule) {
-	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
+PyObject* PrandStart(PyObject *self, PyObject *pArgs) {
+	PyObject *pObj;
+	char *pURL = nullptr;
+	CHECK(PyArg_ParseTuple(pArgs, "Os", &pObj, &pURL));
+	auto pPrand = (Prand*)PyCapsule_GetPointer(pObj, "Prand");
 	CHECK_NOTNULL(pPrand);
-	cv::Size frameSize(0, 0);
+
 	PyObject *pyResult = Py_False;
-	if (pPrand->Start(&frameSize)) {
+	auto [nRet, frameSize] = pPrand->Start(pURL);
+	if (nRet) {
 		pyResult = Py_True;
 	}
 	auto pyFrameSize = PyTuple_Pack(2, PyLong_FromLong(frameSize.width),
@@ -122,7 +130,7 @@ static PyMethodDef prand_methods[] = {
 		METH_VARARGS, "Create a prand object."
 	}, {
 		"prand_start", (PyCFunction)PrandStart,
-		METH_O, "Please make sure current status is STANDBY."
+		METH_VARARGS, "Please make sure current status is STANDBY."
 	}, {
 		"prand_stop", (PyCFunction)PrandStop,
 		METH_O, "Stop streaming and clear fail status."
@@ -131,7 +139,7 @@ static PyMethodDef prand_methods[] = {
 		METH_VARARGS, "[JPEG quality] 1~100"
 	}, {
 		"prand_get_current_status", (PyCFunction)PrandGetCurrentStatus,
-		METH_VARARGS, "[Status] 1: STANDBY, 2: WORKING, -1: FAILED"
+		METH_O, "[Status] 1: STANDBY, 2: WORKING, -1: FAILED"
 	}, {
 		"prand_get_frame", (PyCFunction)PrandGetFrame,
 		METH_VARARGS, "[Return code] 0: Empty -1: Failed, >0: Successed"

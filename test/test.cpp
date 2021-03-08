@@ -20,6 +20,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 	google::InitGoogleLogging(ppArgs[0]);
 
 	CHECK_GE(nArgCnt, 2) << "Usage: " << ppArgs[0] << " <RTSP_URL> [GPU_ID]";
+	const std::string strURL = ppArgs[1];
 	int nDevID = 0;
 	if (nArgCnt > 2) {
 		nDevID = std::atoi(ppArgs[2]);
@@ -27,19 +28,24 @@ int main(int nArgCnt, char *ppArgs[]) {
 	}
 	const int nMaxSize = 480;
 
-	Prand prand(ppArgs[1], nDevID);
+	Prand prand(nDevID);
 	prand.SetJpegQuality(75);
-	prand.Start();
+	auto [nRet, frameSize] = prand.Start(strURL);
+	CHECK(nRet);
 	cv::cuda::GpuMat gpuImg;
 	cv::Mat img1, img2;
 	std::string strJpegData;
 	for (int64_t nLastFrame = 0; ; ) {
 		int64_t nCurFrame = prand.GetFrame(gpuImg, &strJpegData);
 		if (nCurFrame < 0) {
-			if (prand.GetCurrentStatus() == Prand::STATUS::FAILED) {
-				prand.Stop();
+			auto status = prand.GetCurrentStatus();
+			CHECK(status != Prand::STATUS::WORKING);
+			prand.Stop();
+			if (status == Prand::STATUS::STANDBY) {
+				break;
 			}
-			for (; !prand.Start(); ) {
+			for (nRet = false; !nRet; ) {
+				std::tie(nRet, frameSize) = prand.Start(strURL);
 				usleep(100 * 1000);
 			}
 		}
@@ -52,7 +58,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 			cv::resize(img1, img1, LimitSize(img1.size(), nMaxSize));
 			cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
 			cv::imshow("Downloaded from GPU", img1);
-			cv::imshow("Decode From JPEG", img2);
+			//cv::imshow("Decode From JPEG", img2);
 			LOG(INFO) << "Frame " << nCurFrame;
 			int nKey = cv::waitKey(1) & 0xFF;
 			if (nKey == 27) {

@@ -17,30 +17,31 @@ def size_fit_limit(size):
 		return (max_size, int((size[1] * max_size) / size[0]))
 	return size
 
-dec = prand.Prand(rtsp_url, gpu_id)
+dec = prand.Prand(gpu_id)
 dec.set_jpeg_quality(15)
 frame_size = (0, 0)
 
-def try_start():
+def try_start(url):
 	global frame_size
+	global dec
 	while True:
 		if dec.get_current_status() != 0:
 			dec.stop()
-		status = dec.start()
+		status = dec.start(url)
 		if status[0]:
 			break
 		sleep(0.2)
 		print("Start failed!")
 	frame_size = status[1]
 
-try_start()
+try_start(rtsp_url)
 
 limited_size = size_fit_limit((frame_size[0], frame_size[1]))
 last_frame_id = 0
 while True:
 	frame_id, img1, jpeg = dec.get_frame(True)
 	if frame_id < 0:
-		try_start()
+		try_start(rtsp_url)
 		continue
 	if frame_id > last_frame_id:
 		last_frame_id = frame_id
