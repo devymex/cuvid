@@ -2,7 +2,7 @@
 
 Python RTSP A/V Nvidia Decoder (PRAND)
 
-Wang Yumeng (devymex@gmai.com)
+Wang Yumeng (devymex@gmail.com)
 
 A Python library that Decoding RTSP Stream to RGB frames with GPU.
 
