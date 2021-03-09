@@ -4,7 +4,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
 
-#include "prand.hpp"
+#include "prand_impl.hpp"
 
 extern "C" {
 
@@ -12,7 +12,7 @@ void PrandDestroy(PyObject *pCapsule) {
 #ifdef NDEBUG
 	LOG(INFO) << "Prand Destructed";
 #endif
-	delete (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
+	delete (PrandImpl*)PyCapsule_GetPointer(pCapsule, "Prand");
 }
 
 PyObject* PrandCreate(PyObject *self, PyObject *pArgs) {
@@ -23,7 +23,7 @@ PyObject* PrandCreate(PyObject *self, PyObject *pArgs) {
 	LOG(INFO) << "Prand Created, DevID=nDevID";
 #endif
 
-	Prand *pPrand = new Prand(nDevID);
+	PrandImpl *pPrand = new PrandImpl(nDevID);
 	return PyCapsule_New((void*)pPrand, "Prand", PrandDestroy);
 }
 
@@ -31,7 +31,7 @@ PyObject* PrandStart(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	char *pURL = nullptr;
 	CHECK(PyArg_ParseTuple(pArgs, "Os", &pObj, &pURL));
-	auto pPrand = (Prand*)PyCapsule_GetPointer(pObj, "Prand");
+	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
 	CHECK_NOTNULL(pPrand);
 
 	PyObject *pyResult = Py_False;
@@ -47,20 +47,20 @@ PyObject* PrandStart(PyObject *self, PyObject *pArgs) {
 }
 
 PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {
-	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
+	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pCapsule, "Prand");
 	CHECK_NOTNULL(pPrand);
 	pPrand->Stop();
 	Py_RETURN_NONE;
 }
 
 PyObject* PrandGetCurrentStatus(PyObject *self, PyObject *pCapsule) {
-	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
+	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pCapsule, "Prand");
 	CHECK_NOTNULL(pPrand);
 	auto status = pPrand->GetCurrentStatus();
 	long nStatus = 0;
 	switch (status) {
-	case Prand::STATUS::FAILED: nStatus = -1; break;
-	case Prand::STATUS::WORKING: nStatus = 1; break;
+	case PrandImpl::STATUS::FAILED: nStatus = -1; break;
+	case PrandImpl::STATUS::WORKING: nStatus = 1; break;
 	}
 	return PyLong_FromLong(nStatus);
 }
@@ -70,7 +70,7 @@ PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
 	int nQuality = -1;
 	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nQuality));
 
-	auto pPrand = (Prand*)PyCapsule_GetPointer(pObj, "Prand");
+	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
 	CHECK_NOTNULL(pPrand);
 	pPrand->SetJpegQuality(nQuality);
 	Py_RETURN_NONE;
@@ -89,7 +89,7 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 	int nWithJpeg = 0;
 	CHECK(PyArg_ParseTuple(pArgs, "O|i", &pObj, &nWithJpeg));
 
-	auto pPrand = (Prand*)PyCapsule_GetPointer(pObj, "Prand");
+	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
 	CHECK_NOTNULL(pPrand);
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;

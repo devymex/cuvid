@@ -1,6 +1,7 @@
 #include <string>
 #include <opencv2/cudaimgproc.hpp>
-#include "../src/prand.hpp"
+#include <glog/logging.h>
+#include "../include/prand.hpp"
 
 cv::Size LimitSize(const cv::Size &in, int nMaxSize) {
 	cv::Size out = in;
