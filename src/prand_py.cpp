@@ -57,7 +57,11 @@ PyObject* PrandGetCurrentStatus(PyObject *self, PyObject *pCapsule) {
 	auto pPrand = (Prand*)PyCapsule_GetPointer(pCapsule, "Prand");
 	CHECK_NOTNULL(pPrand);
 	auto status = pPrand->GetCurrentStatus();
-	long nStatus = (status == Prand::STATUS::FAILED) ? -1 : (long)status;
+	long nStatus = 0;
+	switch (status) {
+	case Prand::STATUS::FAILED: nStatus = -1; break;
+	case Prand::STATUS::WORKING: nStatus = 1; break;
+	}
 	return PyLong_FromLong(nStatus);
 }
 
@@ -139,7 +143,7 @@ static PyMethodDef prand_methods[] = {
 		METH_VARARGS, "[JPEG quality] 1~100"
 	}, {
 		"prand_get_current_status", (PyCFunction)PrandGetCurrentStatus,
-		METH_O, "[Status] 1: STANDBY, 2: WORKING, -1: FAILED"
+		METH_O, "[Status] 0: STANDBY, 1: WORKING, -1: FAILED"
 	}, {
 		"prand_get_frame", (PyCFunction)PrandGetFrame,
 		METH_VARARGS, "[Return code] 0: Empty -1: Failed, >0: Successed"

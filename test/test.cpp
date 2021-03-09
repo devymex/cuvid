@@ -30,6 +30,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 
 	Prand prand(nDevID);
 	prand.SetJpegQuality(75);
+
 	auto [nRet, frameSize] = prand.Start(strURL);
 	CHECK(nRet);
 	cv::cuda::GpuMat gpuImg;
@@ -37,6 +38,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 	std::string strJpegData;
 	for (int64_t nLastFrame = 0; ; ) {
 		int64_t nFrmId = prand.GetFrame(gpuImg, &strJpegData);
+		LOG(INFO) << "frame_id: " << nFrmId;
 		if (nFrmId < 0) {
 			auto status = prand.GetCurrentStatus();
 			prand.Stop();
@@ -45,13 +47,11 @@ int main(int nArgCnt, char *ppArgs[]) {
 			}
 			nLastFrame = 0;
 			for (nRet = false; !nRet; ) {
-				std::tie(nRet, frameSize) = prand.Start(strURL);
 				usleep(100 * 1000);
+				std::tie(nRet, frameSize) = prand.Start(strURL);
 			}
-		}
-		LOG(INFO) << "nFrmId=" << nFrmId;
-		// Skipping current frame if the nFrmId equal to zero or unchanged.
-		if (nFrmId > nLastFrame) {
+		} else if (nFrmId > nLastFrame) {
+			// Skipping current frame if the nFrmId equal to zero or unchanged.
 			nLastFrame = nFrmId;
 			gpuImg.download(img1);
 			std::vector<uint8_t> bytes(strJpegData.size());

@@ -18,44 +18,37 @@ def size_fit_limit(size):
 	return size
 
 dec = prand.Prand(gpu_id)
-dec.set_jpeg_quality(15)
-frame_size = (0, 0)
+dec.set_jpeg_quality(75)
 
-def try_start(url):
-	global frame_size
-	global dec
-	while True:
-		if dec.get_current_status() != 0:
-			dec.stop()
-		status = dec.start(url)
-		if status[0]:
-			break
-		sleep(0.2)
-		print("Start failed!")
-	frame_size = status[1]
-
-try_start(rtsp_url)
-
-limited_size = size_fit_limit((frame_size[0], frame_size[1]))
+ret, frame_size = dec.start(rtsp_url)
 last_frame_id = 0
 while True:
 	frame_id, img1, jpeg = dec.get_frame(True)
+	print('frame_id:', frame_id)
 	if frame_id < 0:
-		try_start(rtsp_url)
-		continue
-	if frame_id > last_frame_id:
+		status = dec.get_current_status()
+		dec.stop()
+		if status == 0:
+			break
+		last_frame_id = 0
+		sleep(0.1)
+		ret, frame_size = dec.start(rtsp_url)
+	elif frame_id > last_frame_id:
 		last_frame_id = frame_id
+		limited_size = size_fit_limit((frame_size[0], frame_size[1]))
 		img1 = cv2.resize(img1, limited_size)
 		jpeg = np.frombuffer(jpeg, dtype="uint8")
 		img2 = cv2.imdecode(jpeg, cv2.IMREAD_COLOR)
 		img2 = cv2.resize(img2, limited_size)
-	if img1 is None:
-		img1 = np.zeros((limited_size[1], limited_size[0], 3), np.uint8)
-		img2 = np.zeros((limited_size[1], limited_size[0], 3), np.uint8)
-	cv2.imshow("Downloaded from GPU", img1)
-	cv2.imshow("Decode From JPEG", img2)
-	key = cv2.waitKey(1) & 0xFF
-	if key == 27:
-		break
+		if img1 is None:
+			img1 = np.zeros((limited_size[1], limited_size[0], 3), np.uint8)
+			img2 = np.zeros((limited_size[1], limited_size[0], 3), np.uint8)
+		cv2.imshow("Downloaded from GPU", img1)
+		cv2.imshow("Decode From JPEG", img2)
+		key = cv2.waitKey(1) & 0xFF
+		if key == 27:
+			break
+	else:
+		sleep(0.001)
 
 dec.stop()

@@ -6,7 +6,6 @@ import time
 class Prand:
 	def __init__(self, gpu_id):
 		self._prand = prand.prand_create(gpu_id)
-		self._frame_id = 0
 
 	def start(self, url):
 		return prand.prand_start(self._prand, url)
@@ -23,15 +22,7 @@ class Prand:
 	def get_frame(self, with_jpeg = True):
 		if with_jpeg:
 			frame_id, img, jpeg = prand.prand_get_frame(self._prand, True)
-			if frame_id != self._frame_id:
-				self._frame_id += frame_id
-				return (self._frame_id, img, jpeg)
-			else:
-				return (0, None, None)
+			return (frame_id, img, jpeg)
 		else:
 			frame_id, img = prand.prand_get_frame(self._prand, False)
-			if frame_id != self._frame_id:
-				self._frame_id += frame_id
-				return (self._frame_id, img)
-			else:
-				return (0, None)
+			return (frame_id, img)
