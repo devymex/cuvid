@@ -63,15 +63,15 @@ private:
 
 private:
 	int m_nGpuID = 0;
+	int m_nStreamId = -1;
 	bool m_bBlocking = false;
+	double m_dTimeBase = 0.;
 
 	std::shared_ptr<AVFormatContext> m_pAVCtx;
 	std::shared_ptr<AVBSFContext> m_pAVBsfc;
 	std::atomic<int64_t> m_nFrameCnt;
 	AVPacket m_FilterPacket;
 	cudaVideoCodec m_CurCodecId;
-	double m_dTimeBase;
-	int m_nStreamId;
 
 	std::shared_ptr<CUcontext> m_pCuCtx;
 	std::unique_ptr<NvDecoder> m_pDecoder;

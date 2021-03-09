@@ -97,7 +97,6 @@ sudo make install -j8
 ## 3. Build
 
 ```bash
-sudo updatedb
 cd prand
 mkdir build
 cd build

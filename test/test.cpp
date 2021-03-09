@@ -36,21 +36,23 @@ int main(int nArgCnt, char *ppArgs[]) {
 	cv::Mat img1, img2;
 	std::string strJpegData;
 	for (int64_t nLastFrame = 0; ; ) {
-		int64_t nCurFrame = prand.GetFrame(gpuImg, &strJpegData);
-		if (nCurFrame < 0) {
+		int64_t nFrmId = prand.GetFrame(gpuImg, &strJpegData);
+		if (nFrmId < 0) {
 			auto status = prand.GetCurrentStatus();
-			CHECK(status != Prand::STATUS::WORKING);
 			prand.Stop();
 			if (status == Prand::STATUS::STANDBY) {
 				break;
 			}
+			nLastFrame = 0;
 			for (nRet = false; !nRet; ) {
 				std::tie(nRet, frameSize) = prand.Start(strURL);
 				usleep(100 * 1000);
 			}
 		}
-		if (nCurFrame > nLastFrame) {
-			nLastFrame = nCurFrame;
+		LOG(INFO) << "nFrmId=" << nFrmId;
+		// Skipping current frame if the nFrmId equal to zero or unchanged.
+		if (nFrmId > nLastFrame) {
+			nLastFrame = nFrmId;
 			gpuImg.download(img1);
 			std::vector<uint8_t> bytes(strJpegData.size());
 			memcpy(bytes.data(), strJpegData.data(), strJpegData.size());
@@ -59,7 +61,6 @@ int main(int nArgCnt, char *ppArgs[]) {
 			cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
 			cv::imshow("Downloaded from GPU", img1);
 			//cv::imshow("Decode From JPEG", img2);
-			LOG(INFO) << "Frame " << nCurFrame;
 			int nKey = cv::waitKey(1) & 0xFF;
 			if (nKey == 27) {
 				break;
