@@ -1,22 +1,22 @@
 #ifndef __PRAND_IMPL_HPP
 #define __PRAND_IMPL_HPP
 
-#include <atomic>
-#include <mutex>
-#include <string>
-#include <vector>
-#include <thread>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/cuda.hpp>
-#include <nvjpeg.h>
+#include "NvDecoder/NvDecoder.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 }
 
-#include "NvDecoder/NvDecoder.h"
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/cuda.hpp>
+#include <nvjpeg.h>
+
+#include <atomic>
+#include <mutex>
+#include <string>
+#include <vector>
+#include <thread>
 
 #define MAKE_STR(name) (#name)
 

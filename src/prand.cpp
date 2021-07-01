@@ -1,5 +1,5 @@
-#include "../include/prand.hpp"
 #include "prand_impl.hpp"
+#include "../include/prand.hpp"
 
 Prand::Prand(int nGpuID) {
 	m_pImpl.reset(new PrandImpl(nGpuID));

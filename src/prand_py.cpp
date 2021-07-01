@@ -1,10 +1,9 @@
-#include <Python.h>
-#include <glog/logging.h>
+#include "prand_impl.hpp"
+#include "logging.hpp"
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
-
-#include "prand_impl.hpp"
+#include <Python.h>
 
 extern "C" {
 
@@ -160,9 +159,6 @@ static struct PyModuleDef prand_definition = {
 };
 
 PyMODINIT_FUNC PyInit_prand(void) {
-	FLAGS_alsologtostderr = 1;
-	google::InitGoogleLogging("");
-
 	Py_Initialize();
 	import_array();
 	return PyModule_Create(&prand_definition);

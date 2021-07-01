@@ -1,7 +1,8 @@
-#include <string>
-#include <opencv2/cudaimgproc.hpp>
-#include <glog/logging.h>
 #include "../include/prand.hpp"
+#include "../src/logging.hpp"
+#include <opencv2/cudaimgproc.hpp>
+#include <string>
+#include <unistd.h>
 
 cv::Size LimitSize(const cv::Size &in, int nMaxSize) {
 	cv::Size out = in;
@@ -17,9 +18,6 @@ cv::Size LimitSize(const cv::Size &in, int nMaxSize) {
 }
 
 int main(int nArgCnt, char *ppArgs[]) {
-	FLAGS_alsologtostderr = 1; 
-	google::InitGoogleLogging(ppArgs[0]);
-
 	CHECK_GE(nArgCnt, 2) << "Usage: " << ppArgs[0] << " <RTSP_URL> [GPU_ID]";
 	const std::string strURL = ppArgs[1];
 	int nDevID = 0;

@@ -32,7 +32,7 @@
 #include <list>
 #include <condition_variable>
 
-#include <glog/logging.h>
+#include "../logging.hpp"
 
 //extern simplelogger::Logger *logger;
 

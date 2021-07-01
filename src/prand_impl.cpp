@@ -1,6 +1,6 @@
 #include <memory>
 #include <sstream>
-#include <glog/logging.h>
+#include "logging.hpp"
 #include <cuda_runtime.h>
 
 extern "C" {
