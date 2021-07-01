@@ -55,7 +55,7 @@ public:
 	void SetJpegQuality(int nQuality);
 
 private:
-	void __DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg);
+	void __DecodeFrame(cv::cuda::GpuMat &gpuImg);
 
 	void __WorkerProc();
 
@@ -65,11 +65,13 @@ private:
 	int m_nGpuID = 0;
 	int m_nStreamId = -1;
 	bool m_bBlocking = false;
+	bool m_bEOF = false;
 	double m_dTimeBase = 0.;
 
 	std::shared_ptr<AVFormatContext> m_pAVCtx;
 	std::shared_ptr<AVBSFContext> m_pAVBsfc;
 	std::atomic<int64_t> m_nFrameCnt;
+	std::atomic<int64_t> m_nCursor;
 	AVPacket m_FilterPacket;
 	cudaVideoCodec m_CurCodecId;
 

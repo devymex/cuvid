@@ -59,11 +59,12 @@ int main(int nArgCnt, char *ppArgs[]) {
 			cv::resize(img1, img1, LimitSize(img1.size(), nMaxSize));
 			cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
 			cv::imshow("Downloaded from GPU", img1);
-			//cv::imshow("Decode From JPEG", img2);
+			cv::imshow("Decode From JPEG", img2);
 			int nKey = cv::waitKey(1) & 0xFF;
 			if (nKey == 27) {
 				break;
 			}
+			//cv::imwrite("data/" + std::to_string(nFrmId) + ".jpg", img1);
 		} else {
 			usleep(1000);
 		}

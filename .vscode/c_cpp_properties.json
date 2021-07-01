@@ -3,19 +3,20 @@
 		{
 			"name": "Linux",
 			"includePath": [
-				"${workspaceFolder}/**",
-				"/home/devymex/.local/lib/python3.6/site-packages/**",
+				"${workspaceFolder}/src",
+				"/home/devymex/.local/lib/python3.6/site-packages",
 				"/usr/local/cuda/targets/x86_64-linux/include",
-				"/opt/libtorch/include/**",
-				"/usr/local/include/**",
-				"/usr/include/**"
+				"/usr/local/include/opencv4",
+				"/usr/local/include",
+				"/usr/include"
 			],
-			"defines": ["NDEBUG"],
+			"defines": [
+				"NDEBUG"
+			],
 			"compilerPath": "/usr/bin/g++-7",
 			"cStandard": "c11",
 			"cppStandard": "c++17",
 			"intelliSenseMode": "clang-x64"
-			//"configurationProvider": "ms-vscode.cmake-tools"
 		}
 	],
 	"version": 4

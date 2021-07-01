@@ -67,6 +67,7 @@ void DestroyAVBsfc(AVBSFContext *pAVBsfc) {
 PrandImpl::PrandImpl(int nGpuID)
 		: m_nGpuID(nGpuID)
 		, m_nFrameCnt(0)
+		, m_nCursor(0)
 		, m_Status(STATUS::STANDBY) {
 	m_FilterPacket.data = nullptr;
 	m_FilterPacket.size = 0;
@@ -150,6 +151,8 @@ std::pair<bool, cv::Size> PrandImpl::Start(const std::string &strURL,
 		pBsf = av_bsf_get_by_name("h264_mp4toannexb");
 	} else if (m_CurCodecId == cudaVideoCodec_HEVC) {
 		pBsf = av_bsf_get_by_name("hevc_mp4toannexb");
+	} else {
+		CHECK(m_CurCodecId == cudaVideoCodec_H264 || m_CurCodecId == cudaVideoCodec_HEVC);
 	}
 	if (pBsf != nullptr) {
 		AVBSFContext *pBsfc = nullptr;
@@ -168,6 +171,8 @@ std::pair<bool, cv::Size> PrandImpl::Start(const std::string &strURL,
 	// Initializing Internal Variables
 	// -------------------------------
 	m_nFrameCnt = 0;
+	m_nCursor = 0;
+	m_bEOF = false;
 	m_Status = STATUS::WORKING;
 	m_dTimeBase = av_q2d(pStream->time_base);
 	if (readMode == READ_MODE::AUTO) { // AUTO: block for file, async for rtsp
@@ -176,8 +181,8 @@ std::pair<bool, cv::Size> PrandImpl::Start(const std::string &strURL,
 		m_bBlocking = (readMode == READ_MODE::BLOCK);
 		CHECK(readMode == READ_MODE::ASYNC || readMode == READ_MODE::BLOCK);
 	}
-#ifdef NDEBUG
 	cv::Size frameSize(pStream->codecpar->width, pStream->codecpar->height);
+#ifdef NDEBUG
 	LOG(INFO) << "Decoder: " << m_CurCodecId << ", resolution: " << frameSize
 			  << ", Blocking: " << m_bBlocking;
 #endif
@@ -226,7 +231,7 @@ int64_t PrandImpl::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) 
 		if (!m_WorkingBuf.empty()) {
 			m_WorkingBuf.copyTo(outImg);
 		}
-		nFrameCnt = m_nFrameCnt;
+		nFrameCnt = m_nCursor;
 		m_Mutex.unlock();
 		if (m_bBlocking) {
 			m_Worker = std::thread(&PrandImpl::__WorkerProc, this);
@@ -245,52 +250,66 @@ void PrandImpl::__WorkerProc() {
 	const int64_t nUserTimeScale = 1000;
 	AVPacket packet;
 	for (; m_Status == STATUS::WORKING; ) {
-		av_init_packet(&packet);
-		int64_t nRet = -1;
-		for (; ; ::av_packet_unref(&packet)) {
-			nRet = ::av_read_frame(m_pAVCtx.get(), &packet);
-			if (nRet < 0 || packet.stream_index == m_nStreamId) {
+		int64_t nDecodedFrames = 0;
+		if (m_nCursor == m_nFrameCnt) {
+			if (m_bEOF) {
+				m_Status = STATUS::STANDBY; // streaming stopped  spontaneously
 				break;
 			}
-		}
-		int64_t nDecodedFrames = 0;
-		if (nRet >= 0) {
-			uint8_t *pData = packet.data;
-			int nSize = packet.size;
-			int64_t pts = packet.pts * nUserTimeScale * m_dTimeBase;
-			if (m_CurCodecId == cudaVideoCodec_H264 || m_CurCodecId == cudaVideoCodec_HEVC) {
-				CHECK_EQ(av_bsf_send_packet(m_pAVBsfc.get(), &packet), 0);
-				if (m_FilterPacket.data) {
-					av_packet_unref(&m_FilterPacket);
+			av_init_packet(&packet);
+			int64_t nRet = -1;
+			for (; ; ::av_packet_unref(&packet)) {
+				nRet = ::av_read_frame(m_pAVCtx.get(), &packet);
+				if (nRet < 0 || packet.stream_index == m_nStreamId) {
+					break;
 				}
-				CHECK_EQ(av_bsf_receive_packet(m_pAVBsfc.get(), &m_FilterPacket), 0);
-				pData = m_FilterPacket.data;
-				nSize = m_FilterPacket.size;
-				pts = m_FilterPacket.pts * nUserTimeScale * m_dTimeBase;
 			}
-			nDecodedFrames = m_pDecoder->Decode(pData, nSize, 0, pts);
-			if (nDecodedFrames) {
-				std::lock_guard<std::mutex> locker(m_Mutex);
-				__DecodeFrame(packet, m_WorkingBuf);
-				m_nFrameCnt += nDecodedFrames;
-			}
-		} else if (nRet == AVERROR_EOF) { // EOF encountered,
-			m_Status = STATUS::STANDBY; // streaming stopped  spontaneously
-		} else {
+			if (nRet >= 0 || nRet == AVERROR_EOF) {
+				if (nRet == AVERROR_EOF) {
+					CHECK_EQ(av_bsf_send_packet(m_pAVBsfc.get(), nullptr), 0);
+				} else {
+					CHECK_EQ(av_bsf_send_packet(m_pAVBsfc.get(), &packet), 0);
+				}
+				for (int32_t nErrCode = 0; nErrCode != AVERROR_EOF;) {
+					if (m_FilterPacket.data) {
+						av_packet_unref(&m_FilterPacket);
+					}
+					nErrCode = av_bsf_receive_packet(m_pAVBsfc.get(), &m_FilterPacket);
+					if (nErrCode == AVERROR(EAGAIN)) {
+						break;
+					}
+					uint8_t *pData = m_FilterPacket.data;
+					int nSize = m_FilterPacket.size;
+					int nFlag = 0;
+					int64_t pts = m_FilterPacket.pts * nUserTimeScale * m_dTimeBase;
+					if (nErrCode == AVERROR_EOF) {
+						nFlag = CUVID_PKT_ENDOFSTREAM;
+						m_bEOF = true;
+					}
+					nDecodedFrames += m_pDecoder->Decode(pData, nSize, nFlag, pts);
+				}
+			} else {
 #ifdef NDEBUG
-			std::string strMsg(1024, '\0');
-			auto nErr = av_strerror(nRet, (char *)strMsg.data(), strMsg.size());
-			if (nErr < 0) {
-				strMsg = "UNKNOWN";
-			}
-			LOG(WARNING) << "One frame lost, code=" << nRet
-						 << ", message=\"" << strMsg << "\"";
+				std::string strMsg(1024, '\0');
+				auto nErr = av_strerror(nRet, (char *)strMsg.data(), strMsg.size());
+				if (nErr < 0) {
+					strMsg = "UNKNOWN";
+				}
+				LOG(WARNING) << "One frame lost, code=" << nRet
+							<< ", message=\"" << strMsg << "\"";
 #endif
-			m_Status = STATUS::FAILED;
+				m_Status = STATUS::FAILED;
+			}
+			av_packet_unref(&packet);
 		}
-		av_packet_unref(&packet);
-		if (m_bBlocking && nDecodedFrames > 0) {
-			break;
+		if (nDecodedFrames > 0 || m_nCursor < m_nFrameCnt) {
+			std::lock_guard<std::mutex> locker(m_Mutex);
+			m_nFrameCnt += nDecodedFrames;
+			__DecodeFrame(m_WorkingBuf);
+			++m_nCursor;
+			if (m_bBlocking) {
+				break;
+			}
 		}
 	}
 }
@@ -303,7 +322,7 @@ void PrandImpl::SetJpegQuality(int nQuality) {
 			nQuality, m_CudaStream));
 }
 
-void PrandImpl::__DecodeFrame(const AVPacket &packet, cv::cuda::GpuMat &gpuImg) {
+void PrandImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 
 	auto frameFormat = m_pDecoder->GetOutputFormat();
