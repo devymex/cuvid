@@ -13,7 +13,7 @@
 				"/usr/include"
 			],
 			"defines": [
-				"NDEBUG"
+				"VERBOSE_LOG"
 			],
 			"compilerPath": "/usr/bin/g++-7",
 			"cStandard": "c11",

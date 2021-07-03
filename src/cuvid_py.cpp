@@ -8,7 +8,7 @@
 extern "C" {
 
 void CuvidDestroy(PyObject *pCapsule) {
-#ifdef NDEBUG
+#ifdef VERBOSE_LOG
 	LOG(INFO) << "Cuvid Destructed";
 #endif
 	delete (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
@@ -18,7 +18,7 @@ PyObject* CuvidCreate(PyObject *self, PyObject *pArgs) {
 	int nDevID = 0;
 	CHECK(PyArg_ParseTuple(pArgs, "i", &nDevID));
 
-#ifdef NDEBUG
+#ifdef VERBOSE_LOG
 	LOG(INFO) << "Cuvid Created, DevID=nDevID";
 #endif
 

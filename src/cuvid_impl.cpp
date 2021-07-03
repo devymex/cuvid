@@ -121,7 +121,7 @@ bool CuvidImpl::Start(const std::string &strURL,
 	AVFormatContext *pAVCtxRaw = nullptr;
 	if (::avformat_open_input(&pAVCtxRaw, strURL.c_str(),
 			nullptr, &pDict) != 0) {
-#ifdef NDEBUG
+#ifdef VERBOSE_LOG
 		LOG(WARNING) << "Can't open stream: \"" << strURL << "\"";
 #endif
 		return false;
@@ -182,7 +182,7 @@ bool CuvidImpl::Start(const std::string &strURL,
 		CHECK(readMode == READ_MODE::ASYNC || readMode == READ_MODE::BLOCK);
 	}
 	cv::Size frameSize(pStream->codecpar->width, pStream->codecpar->height);
-#ifdef NDEBUG
+#ifdef VERBOSE_LOG
 	LOG(INFO) << "Decoder: " << m_CurCodecId << ", resolution: " << frameSize
 			  << ", Blocking: " << m_bBlocking;
 #endif
@@ -306,7 +306,7 @@ void CuvidImpl::__WorkerProc() {
 					nDecodedFrames += m_pDecoder->Decode(pData, nSize, nFlag, pts);
 				}
 			} else {
-#ifdef NDEBUG
+#ifdef VERBOSE_LOG
 				std::string strMsg(1024, '\0');
 				auto nErr = av_strerror(nRet, (char *)strMsg.data(), strMsg.size());
 				if (nErr < 0) {
