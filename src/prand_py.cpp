@@ -34,15 +34,10 @@ PyObject* PrandStart(PyObject *self, PyObject *pArgs) {
 	CHECK_NOTNULL(pPrand);
 
 	PyObject *pyResult = Py_False;
-	auto [nRet, frameSize] = pPrand->Start(pURL);
-	if (nRet) {
-		pyResult = Py_True;
+	if (pPrand->Start(pURL)) {
+		Py_RETURN_TRUE;
 	}
-	auto pyFrameSize = PyTuple_Pack(2, PyLong_FromLong(frameSize.width),
-						PyLong_FromLong(frameSize.height));
-	auto pyRet = PyTuple_Pack(2, pyResult, pyFrameSize);
-	Py_XDECREF(pyFrameSize);
-	return pyRet;
+	Py_RETURN_FALSE;
 }
 
 PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {
@@ -50,6 +45,17 @@ PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {
 	CHECK_NOTNULL(pPrand);
 	pPrand->Stop();
 	Py_RETURN_NONE;
+}
+
+PyObject* PrandGet(PyObject *self, PyObject *pArgs) {
+	PyObject *pObj;
+	int32_t nProp = -1;
+	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nProp));
+
+	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
+	CHECK_NOTNULL(pPrand);
+	auto dVal = pPrand->get(cv::VideoCaptureProperties(nProp));
+	return PyFloat_FromDouble(dVal);
 }
 
 PyObject* PrandGetCurrentStatus(PyObject *self, PyObject *pCapsule) {

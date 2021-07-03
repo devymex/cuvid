@@ -110,7 +110,7 @@ PrandImpl::~PrandImpl() {
 	CUDA_CHECK(::cudaStreamDestroy(m_CudaStream));
 }
 
-std::pair<bool, cv::Size> PrandImpl::Start(const std::string &strURL,
+bool PrandImpl::Start(const std::string &strURL,
 		READ_MODE readMode) {
 	CHECK(m_Status == STATUS::STANDBY);
 
@@ -124,7 +124,7 @@ std::pair<bool, cv::Size> PrandImpl::Start(const std::string &strURL,
 #ifdef NDEBUG
 		LOG(WARNING) << "Can't open stream: \"" << strURL << "\"";
 #endif
-		return std::make_pair(false, cv::Size());
+		return false;
 	}
 	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
 	::av_dict_free(&pDict);
@@ -190,7 +190,7 @@ std::pair<bool, cv::Size> PrandImpl::Start(const std::string &strURL,
 	// Streaming Started
 	// -----------------
 	m_Worker = std::thread(&PrandImpl::__WorkerProc, this);
-	return std::make_pair(true, frameSize);
+	return true;
 }
 
 // Stop streaming and clear the FAILED status
@@ -200,6 +200,23 @@ void PrandImpl::Stop() {
 		m_Worker.join();
 	}
 	m_bBlocking = false;
+}
+
+double PrandImpl::get(cv::VideoCaptureProperties prop) const {
+	CHECK_NOTNULL(m_pAVCtx);
+	AVStream *pStream = m_pAVCtx->streams[m_nStreamId];
+	if (prop == cv::CAP_PROP_FPS) {
+		auto fr = pStream->avg_frame_rate;
+		return (double)fr.num / (double)fr.den;
+	} else if (prop == cv::CAP_PROP_FRAME_COUNT) {
+		return pStream->nb_frames;
+	} else if (prop == cv::CAP_PROP_FRAME_WIDTH) {
+		return pStream->codecpar->width;
+	} else if (prop == cv::CAP_PROP_FRAME_HEIGHT) {
+		return pStream->codecpar->height;
+	}
+	LOG(FATAL) << "Unsupported prop!";
+	return 0.f;
 }
 
 // Return Value: STATUS::WORKING if it working normally regardless of whether

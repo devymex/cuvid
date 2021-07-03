@@ -13,6 +13,9 @@ class Prand:
 	def stop(self):
 		prand.prand_stop(self._prand)
 	
+	def get(self, propId):
+		return prand.get(self._prand, propId)
+
 	def set_jpeg_quality(self, quality):
 		prand.prand_set_jpeg_quality(self._prand, quality)
 

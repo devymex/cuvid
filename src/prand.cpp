@@ -8,13 +8,16 @@ Prand::Prand(int nGpuID) {
 Prand::~Prand() {
 }
 
-std::pair<bool, cv::Size> Prand::Start(const std::string &strURL,
-		READ_MODE readMode) {
+bool Prand::Start(const std::string &strURL, READ_MODE readMode) {
 	return m_pImpl->Start(strURL, PrandImpl::READ_MODE(readMode));
 }
 
 void Prand::Stop() {
 	m_pImpl->Stop();
+}
+
+double Prand::get(cv::VideoCaptureProperties prop) const {
+	return m_pImpl->get(prop);
 }
 
 Prand::STATUS Prand::GetCurrentStatus() const {

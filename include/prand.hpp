@@ -15,10 +15,11 @@ public:
 	Prand(int nGpuID);
 	~Prand();
 
-	std::pair<bool, cv::Size> Start(const std::string &strURL,
-			READ_MODE readMode = READ_MODE::AUTO);
+	bool Start(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO);
 
 	void Stop();
+
+	double get(cv::VideoCaptureProperties prop) const;
 
 	STATUS GetCurrentStatus() const;
 

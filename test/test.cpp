@@ -30,8 +30,9 @@ int main(int nArgCnt, char *ppArgs[]) {
 	Prand prand(nDevID);
 	prand.SetJpegQuality(75);
 
-	auto [nRet, frameSize] = prand.Start(strURL);
-	CHECK(nRet);
+	CHECK(prand.Start(strURL));
+	cv::Size frameSize(prand.get(cv::CAP_PROP_FRAME_WIDTH),
+					   prand.get(cv::CAP_PROP_FRAME_HEIGHT));
 	cv::cuda::GpuMat gpuImg;
 	cv::Mat img1, img2;
 	std::string strJpegData;
@@ -45,9 +46,9 @@ int main(int nArgCnt, char *ppArgs[]) {
 				break;
 			}
 			nLastFrame = 0;
-			for (nRet = false; !nRet; ) {
+			for (bool nRet = false; !nRet; ) {
 				usleep(100 * 1000);
-				std::tie(nRet, frameSize) = prand.Start(strURL);
+				nRet = prand.Start(strURL);
 			}
 		} else if (nFrmId > nLastFrame) {
 			// Skipping current frame if the nFrmId equal to zero or unchanged.

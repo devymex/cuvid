@@ -5,6 +5,8 @@
 			"includePath": [
 				"${workspaceFolder}/src",
 				"/home/devymex/.local/lib/python3.6/site-packages",
+				"/usr/local/lib/python3.6/dist-packages/numpy/core/include",
+				"/usr/include/python3.6m",
 				"/usr/local/cuda/targets/x86_64-linux/include",
 				"/usr/local/include/opencv4",
 				"/usr/local/include",
