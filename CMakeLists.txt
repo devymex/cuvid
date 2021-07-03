@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
-PROJECT(prand LANGUAGES CXX)
+PROJECT(cuvid LANGUAGES CXX)
 
 # Settings
 # --------
@@ -93,7 +93,7 @@ ADD_DEPENDENCIES(${PROJECT_NAME}_test ${PROJECT_NAME})
 # Installation for C++
 # --------------------
 INSTALL(TARGETS ${PROJECT_NAME} LIBRARY)
-INSTALL(FILES "${CMAKE_SOURCE_DIR}/include/prand.hpp"
+INSTALL(FILES "${CMAKE_SOURCE_DIR}/include/cuvid.hpp"
 	DESTINATION "${CMAKE_INSTALL_PREFIX}/include"
 	)
 

@@ -1,19 +1,19 @@
-#ifndef __PRAND_HPP
-#define __PRAND_HPP
+#ifndef __CUVID_HPP
+#define __CUVID_HPP
 
 #include <string>
 #include <utility>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/cuda.hpp>
 
-class PrandImpl;
-class Prand {
+class CuvidImpl;
+class Cuvid {
 public:
 	enum class STATUS { STANDBY = 0, WORKING = 1, FAILED = 2 };
 	enum class READ_MODE { AUTO = 0, BLOCK = 1, ASYNC = 2 };
 
-	Prand(int nGpuID);
-	~Prand();
+	Cuvid(int nGpuID);
+	~Cuvid();
 
 	bool Start(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO);
 
@@ -29,7 +29,7 @@ public:
 	void SetJpegQuality(int nQuality);
 
 private:
-	std::unique_ptr<PrandImpl> m_pImpl;
+	std::unique_ptr<CuvidImpl> m_pImpl;
 };
 
-#endif //__PRAND_HPP
+#endif //__CUVID_HPP

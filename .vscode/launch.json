@@ -5,10 +5,10 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "prand_test",
+			"name": "cuvid_test",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/prand_test",
+			"program": "${workspaceFolder}/build/cuvid_test",
 			"args": [
 				//"\"rtsp://admin:Admin123@192.168.1.64:554/h264/ch1/main/av_stream\""
 				"/mnt/data/devymex/data/bzj_fridge/server/videos/a8224ef7bf19bc4b.mp4"

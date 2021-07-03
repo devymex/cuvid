@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import sys, cv2
-import prand, numpy as np
+import cuvid, numpy as np
 from time import sleep
 
 assert(len(sys.argv) >= 2)
@@ -17,7 +17,7 @@ def size_fit_limit(size):
 		return (max_size, int((size[1] * max_size) / size[0]))
 	return size
 
-dec = prand.Prand(gpu_id)
+dec = cuvid.Cuvid(gpu_id)
 dec.set_jpeg_quality(75)
 
 ret, frame_size = dec.start(rtsp_url)

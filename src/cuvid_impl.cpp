@@ -12,7 +12,7 @@ extern "C" {
 }
 
 #include "NvDecoder/ColorSpace.h"
-#include "prand_impl.hpp"
+#include "cuvid_impl.hpp"
 
 struct AVINIT {
 	AVINIT() {
@@ -64,7 +64,7 @@ void DestroyAVBsfc(AVBSFContext *pAVBsfc) {
 	}
 }
 
-PrandImpl::PrandImpl(int nGpuID)
+CuvidImpl::CuvidImpl(int nGpuID)
 		: m_nGpuID(nGpuID)
 		, m_nFrameCnt(0)
 		, m_nCursor(0)
@@ -98,7 +98,7 @@ PrandImpl::PrandImpl(int nGpuID)
 	CHECK_NOTNULL(m_pCuCtx.get());
 }
 
-PrandImpl::~PrandImpl() {
+CuvidImpl::~CuvidImpl() {
 	Stop();
 	if (m_FilterPacket.data != nullptr) {
 		av_packet_unref(&m_FilterPacket);
@@ -110,7 +110,7 @@ PrandImpl::~PrandImpl() {
 	CUDA_CHECK(::cudaStreamDestroy(m_CudaStream));
 }
 
-bool PrandImpl::Start(const std::string &strURL,
+bool CuvidImpl::Start(const std::string &strURL,
 		READ_MODE readMode) {
 	CHECK(m_Status == STATUS::STANDBY);
 
@@ -189,12 +189,12 @@ bool PrandImpl::Start(const std::string &strURL,
 
 	// Streaming Started
 	// -----------------
-	m_Worker = std::thread(&PrandImpl::__WorkerProc, this);
+	m_Worker = std::thread(&CuvidImpl::__WorkerProc, this);
 	return true;
 }
 
 // Stop streaming and clear the FAILED status
-void PrandImpl::Stop() {
+void CuvidImpl::Stop() {
 	m_Status = STATUS::STANDBY;
 	if (m_Worker.joinable()) {
 		m_Worker.join();
@@ -202,7 +202,7 @@ void PrandImpl::Stop() {
 	m_bBlocking = false;
 }
 
-double PrandImpl::get(cv::VideoCaptureProperties prop) const {
+double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
 	CHECK_NOTNULL(m_pAVCtx);
 	AVStream *pStream = m_pAVCtx->streams[m_nStreamId];
 	if (prop == cv::CAP_PROP_FPS) {
@@ -222,7 +222,7 @@ double PrandImpl::get(cv::VideoCaptureProperties prop) const {
 // Return Value: STATUS::WORKING if it working normally regardless of whether
 //   it is in blocking mode or not. STATUS::STANDBY if it is not started yet or
 //   streaming to end of the media. STATUS::FAILED if any error occured.
-PrandImpl::STATUS PrandImpl::GetCurrentStatus() const {
+CuvidImpl::STATUS CuvidImpl::GetCurrentStatus() const {
 	if (m_Worker.joinable()) {
 		return STATUS::WORKING;
 	}
@@ -233,7 +233,7 @@ PrandImpl::STATUS PrandImpl::GetCurrentStatus() const {
 //   otherwise it is failure. Please note that if the returned value
 //   equal to zero or is the save as the previous, the `frameImg` remains
 //   unchanged and the caller should retry to get the next frame.
-int64_t PrandImpl::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
+int64_t CuvidImpl::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
 	if (m_bBlocking) {
 		if (m_Worker.joinable()) {
@@ -251,7 +251,7 @@ int64_t PrandImpl::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) 
 		nFrameCnt = m_nCursor;
 		m_Mutex.unlock();
 		if (m_bBlocking) {
-			m_Worker = std::thread(&PrandImpl::__WorkerProc, this);
+			m_Worker = std::thread(&CuvidImpl::__WorkerProc, this);
 		}
 		if (!outImg.empty()) {
 			frameImg.swap(outImg);
@@ -263,7 +263,7 @@ int64_t PrandImpl::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) 
 	return nFrameCnt;
 }
 
-void PrandImpl::__WorkerProc() {
+void CuvidImpl::__WorkerProc() {
 	const int64_t nUserTimeScale = 1000;
 	AVPacket packet;
 	for (; m_Status == STATUS::WORKING; ) {
@@ -331,7 +331,7 @@ void PrandImpl::__WorkerProc() {
 	}
 }
 
-void PrandImpl::SetJpegQuality(int nQuality) {
+void CuvidImpl::SetJpegQuality(int nQuality) {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 	CHECK_GT(nQuality, 0);
 	CHECK_LE(nQuality, 100);
@@ -339,7 +339,7 @@ void PrandImpl::SetJpegQuality(int nQuality) {
 			nQuality, m_CudaStream));
 }
 
-void PrandImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
+void CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 
 	auto frameFormat = m_pDecoder->GetOutputFormat();
@@ -381,7 +381,7 @@ void PrandImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 			gpuImg.step);
 }
 
-void PrandImpl::__EncodeJPEG(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
+void CuvidImpl::__EncodeJPEG(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	nvjpegImage_t nvImg = { 0 };
 	nvImg.channel[0] = frameImg.data;
 	nvImg.pitch[0] = frameImg.step;

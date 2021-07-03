@@ -1,31 +1,31 @@
 #!/usr/bin/python3
 
-from . import prand
+from . import cuvid
 import time
 
-class Prand:
+class Cuvid:
 	def __init__(self, gpu_id):
-		self._prand = prand.prand_create(gpu_id)
+		self._cuvid = cuvid.cuvid_create(gpu_id)
 
 	def start(self, url):
-		return prand.prand_start(self._prand, url)
+		return cuvid.cuvid_start(self._cuvid, url)
 
 	def stop(self):
-		prand.prand_stop(self._prand)
+		cuvid.cuvid_stop(self._cuvid)
 	
 	def get(self, propId):
-		return prand.get(self._prand, propId)
+		return cuvid.get(self._cuvid, propId)
 
 	def set_jpeg_quality(self, quality):
-		prand.prand_set_jpeg_quality(self._prand, quality)
+		cuvid.cuvid_set_jpeg_quality(self._cuvid, quality)
 
 	def get_current_status(self):
-		return prand.prand_get_current_status(self._prand)
+		return cuvid.cuvid_get_current_status(self._cuvid)
 
 	def get_frame(self, with_jpeg = True):
 		if with_jpeg:
-			frame_id, img, jpeg = prand.prand_get_frame(self._prand, True)
+			frame_id, img, jpeg = cuvid.cuvid_get_frame(self._cuvid, True)
 			return (frame_id, img, jpeg)
 		else:
-			frame_id, img = prand.prand_get_frame(self._prand, False)
+			frame_id, img = cuvid.cuvid_get_frame(self._cuvid, False)
 			return (frame_id, img)

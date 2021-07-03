@@ -1,4 +1,4 @@
-#include "prand_impl.hpp"
+#include "cuvid_impl.hpp"
 #include "logging.hpp"
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -7,77 +7,77 @@
 
 extern "C" {
 
-void PrandDestroy(PyObject *pCapsule) {
+void CuvidDestroy(PyObject *pCapsule) {
 #ifdef NDEBUG
-	LOG(INFO) << "Prand Destructed";
+	LOG(INFO) << "Cuvid Destructed";
 #endif
-	delete (PrandImpl*)PyCapsule_GetPointer(pCapsule, "Prand");
+	delete (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
 }
 
-PyObject* PrandCreate(PyObject *self, PyObject *pArgs) {
+PyObject* CuvidCreate(PyObject *self, PyObject *pArgs) {
 	int nDevID = 0;
 	CHECK(PyArg_ParseTuple(pArgs, "i", &nDevID));
 
 #ifdef NDEBUG
-	LOG(INFO) << "Prand Created, DevID=nDevID";
+	LOG(INFO) << "Cuvid Created, DevID=nDevID";
 #endif
 
-	PrandImpl *pPrand = new PrandImpl(nDevID);
-	return PyCapsule_New((void*)pPrand, "Prand", PrandDestroy);
+	CuvidImpl *pCuvid = new CuvidImpl(nDevID);
+	return PyCapsule_New((void*)pCuvid, "Cuvid", CuvidDestroy);
 }
 
-PyObject* PrandStart(PyObject *self, PyObject *pArgs) {
+PyObject* CuvidStart(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	char *pURL = nullptr;
 	CHECK(PyArg_ParseTuple(pArgs, "Os", &pObj, &pURL));
-	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
-	CHECK_NOTNULL(pPrand);
+	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
+	CHECK_NOTNULL(pCuvid);
 
 	PyObject *pyResult = Py_False;
-	if (pPrand->Start(pURL)) {
+	if (pCuvid->Start(pURL)) {
 		Py_RETURN_TRUE;
 	}
 	Py_RETURN_FALSE;
 }
 
-PyObject* PrandStop(PyObject *self, PyObject *pCapsule) {
-	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pCapsule, "Prand");
-	CHECK_NOTNULL(pPrand);
-	pPrand->Stop();
+PyObject* CuvidStop(PyObject *self, PyObject *pCapsule) {
+	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
+	CHECK_NOTNULL(pCuvid);
+	pCuvid->Stop();
 	Py_RETURN_NONE;
 }
 
-PyObject* PrandGet(PyObject *self, PyObject *pArgs) {
+PyObject* CuvidGet(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	int32_t nProp = -1;
 	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nProp));
 
-	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
-	CHECK_NOTNULL(pPrand);
-	auto dVal = pPrand->get(cv::VideoCaptureProperties(nProp));
+	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
+	CHECK_NOTNULL(pCuvid);
+	auto dVal = pCuvid->get(cv::VideoCaptureProperties(nProp));
 	return PyFloat_FromDouble(dVal);
 }
 
-PyObject* PrandGetCurrentStatus(PyObject *self, PyObject *pCapsule) {
-	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pCapsule, "Prand");
-	CHECK_NOTNULL(pPrand);
-	auto status = pPrand->GetCurrentStatus();
+PyObject* CuvidGetCurrentStatus(PyObject *self, PyObject *pCapsule) {
+	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
+	CHECK_NOTNULL(pCuvid);
+	auto status = pCuvid->GetCurrentStatus();
 	long nStatus = 0;
 	switch (status) {
-	case PrandImpl::STATUS::FAILED: nStatus = -1; break;
-	case PrandImpl::STATUS::WORKING: nStatus = 1; break;
+	case CuvidImpl::STATUS::FAILED: nStatus = -1; break;
+	case CuvidImpl::STATUS::WORKING: nStatus = 1; break;
 	}
 	return PyLong_FromLong(nStatus);
 }
 
-PyObject* PrandSetJpegQuality(PyObject *self, PyObject *pArgs) {
+PyObject* CuvidSetJpegQuality(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	int nQuality = -1;
 	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nQuality));
 
-	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
-	CHECK_NOTNULL(pPrand);
-	pPrand->SetJpegQuality(nQuality);
+	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
+	CHECK_NOTNULL(pCuvid);
+	pCuvid->SetJpegQuality(nQuality);
 	Py_RETURN_NONE;
 }
 
@@ -89,16 +89,16 @@ PyObject* NDArrayFromData(const std::vector<long> &shape, uint8_t *pData) {
 	return pRet;
 }
 
-PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
+PyObject* CuvidGetFrame(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	int nWithJpeg = 0;
 	CHECK(PyArg_ParseTuple(pArgs, "O|i", &pObj, &nWithJpeg));
 
-	auto pPrand = (PrandImpl*)PyCapsule_GetPointer(pObj, "Prand");
-	CHECK_NOTNULL(pPrand);
+	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
+	CHECK_NOTNULL(pCuvid);
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
-	int64_t nFrameCnt = pPrand->GetFrame(gpuImg,
+	int64_t nFrameCnt = pCuvid->GetFrame(gpuImg,
 			nWithJpeg > 0 ? &strJpeg : nullptr);
 	cv::Mat img;
 	if (nFrameCnt >= 0 && !gpuImg.empty()) {
@@ -133,41 +133,41 @@ PyObject* PrandGetFrame(PyObject *self, PyObject *pArgs) {
 	return pRet;
 }
 
-static PyMethodDef prand_methods[] = { 
+static PyMethodDef cuvid_methods[] = { 
 	{
-		"prand_create", (PyCFunction)PrandCreate,
-		METH_VARARGS, "Create a prand object."
+		"cuvid_create", (PyCFunction)CuvidCreate,
+		METH_VARARGS, "Create a cuvid object."
 	}, {
-		"prand_start", (PyCFunction)PrandStart,
+		"cuvid_start", (PyCFunction)CuvidStart,
 		METH_VARARGS, "Please make sure current status is STANDBY."
 	}, {
-		"prand_stop", (PyCFunction)PrandStop,
+		"cuvid_stop", (PyCFunction)CuvidStop,
 		METH_O, "Stop streaming and clear fail status."
 	}, {
-		"prand_set_jpeg_quality", (PyCFunction)PrandSetJpegQuality,
+		"cuvid_set_jpeg_quality", (PyCFunction)CuvidSetJpegQuality,
 		METH_VARARGS, "[JPEG quality] 1~100"
 	}, {
-		"prand_get_current_status", (PyCFunction)PrandGetCurrentStatus,
+		"cuvid_get_current_status", (PyCFunction)CuvidGetCurrentStatus,
 		METH_O, "[Status] 0: STANDBY, 1: WORKING, -1: FAILED"
 	}, {
-		"prand_get_frame", (PyCFunction)PrandGetFrame,
+		"cuvid_get_frame", (PyCFunction)CuvidGetFrame,
 		METH_VARARGS, "[Return code] 0: Empty -1: Failed, >0: Successed"
 	},
 	{NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef prand_definition = { 
+static struct PyModuleDef cuvid_definition = { 
 	PyModuleDef_HEAD_INIT,
-	"prand",
+	"cuvid",
 	"Python RTSP AV Nvidia Decoder",
 	-1,
-	prand_methods
+	cuvid_methods
 };
 
-PyMODINIT_FUNC PyInit_prand(void) {
+PyMODINIT_FUNC PyInit_cuvid(void) {
 	Py_Initialize();
 	import_array();
-	return PyModule_Create(&prand_definition);
+	return PyModule_Create(&cuvid_definition);
 }
 
 }

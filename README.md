@@ -1,10 +1,10 @@
 ## 1. Brief
 
-Python RTSP A/V Nvidia Decoder (PRAND)
+CUDA Video Decoder (CUVID)
 
 Wang Yumeng (devymex@gmail.com)
 
-A Python library that Decoding RTSP Stream to RGB frames with GPU.
+A video decoder library that supports H264, HEVC(H265) videos from file or RTSP.
 
 ## 2. Dependencies
 
@@ -97,7 +97,7 @@ sudo make install -j8
 ## 3. Build
 
 ```bash
-cd prand
+cd cuvid
 mkdir build
 cd build
 cmake ..
@@ -108,8 +108,8 @@ make install
 ## 4. Run Test
 
 ```bash
-cd prand
-./build/prand_test
+cd cuvid
+./build/cuvid_test
 ./test/test.py
 ```
 

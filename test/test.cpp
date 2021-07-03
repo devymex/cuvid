@@ -1,4 +1,4 @@
-#include "../include/prand.hpp"
+#include "../include/cuvid.hpp"
 #include "../src/logging.hpp"
 #include <opencv2/cudaimgproc.hpp>
 #include <string>
@@ -27,28 +27,28 @@ int main(int nArgCnt, char *ppArgs[]) {
 	}
 	const int nMaxSize = 480;
 
-	Prand prand(nDevID);
-	prand.SetJpegQuality(75);
+	Cuvid cuvid(nDevID);
+	cuvid.SetJpegQuality(75);
 
-	CHECK(prand.Start(strURL));
-	cv::Size frameSize(prand.get(cv::CAP_PROP_FRAME_WIDTH),
-					   prand.get(cv::CAP_PROP_FRAME_HEIGHT));
+	CHECK(cuvid.Start(strURL));
+	cv::Size frameSize(cuvid.get(cv::CAP_PROP_FRAME_WIDTH),
+					   cuvid.get(cv::CAP_PROP_FRAME_HEIGHT));
 	cv::cuda::GpuMat gpuImg;
 	cv::Mat img1, img2;
 	std::string strJpegData;
 	for (int64_t nLastFrame = 0; ; ) {
-		int64_t nFrmId = prand.GetFrame(gpuImg, &strJpegData);
+		int64_t nFrmId = cuvid.GetFrame(gpuImg, &strJpegData);
 		LOG(INFO) << "frame_id: " << nFrmId;
 		if (nFrmId < 0) {
-			auto status = prand.GetCurrentStatus();
-			prand.Stop();
-			if (status == Prand::STATUS::STANDBY) {
+			auto status = cuvid.GetCurrentStatus();
+			cuvid.Stop();
+			if (status == Cuvid::STATUS::STANDBY) {
 				break;
 			}
 			nLastFrame = 0;
 			for (bool nRet = false; !nRet; ) {
 				usleep(100 * 1000);
-				nRet = prand.Start(strURL);
+				nRet = cuvid.Start(strURL);
 			}
 		} else if (nFrmId > nLastFrame) {
 			// Skipping current frame if the nFrmId equal to zero or unchanged.

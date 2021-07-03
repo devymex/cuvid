@@ -1,5 +1,5 @@
-#ifndef __PRAND_IMPL_HPP
-#define __PRAND_IMPL_HPP
+#ifndef __CUVID_IMPL_HPP
+#define __CUVID_IMPL_HPP
 
 #include "NvDecoder/NvDecoder.h"
 
@@ -33,14 +33,14 @@ extern "C" {
 	}}
 
 // Python RTSP AV Nvidia Decoder
-class PrandImpl {
+class CuvidImpl {
 public:
 	enum class STATUS { STANDBY = 0, WORKING = 1, FAILED = 2 };
 	enum class READ_MODE { AUTO = 0, BLOCK = 1, ASYNC = 2 };
 
-	PrandImpl(int nGpuID);
+	CuvidImpl(int nGpuID);
 
-	~PrandImpl();
+	~CuvidImpl();
 
 	bool Start(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO);
 
@@ -92,4 +92,4 @@ private:
 	nvjpegEncoderParams_t m_JpegParams;
 };
 
-#endif //__PRAND_IMPL_HPP
+#endif //__CUVID_IMPL_HPP
