@@ -264,6 +264,7 @@ int64_t CuvidImpl::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) 
 }
 
 void CuvidImpl::__WorkerProc() {
+	CUDA_CHECK(cudaSetDevice(m_nGpuID));
 	const int64_t nUserTimeScale = 1000;
 	AVPacket packet;
 	for (; m_Status == STATUS::WORKING; ) {
