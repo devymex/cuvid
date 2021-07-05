@@ -57,15 +57,15 @@ int main(int nArgCnt, char *ppArgs[]) {
 			std::vector<uint8_t> bytes(strJpegData.size());
 			memcpy(bytes.data(), strJpegData.data(), strJpegData.size());
 			img2 = cv::imdecode(bytes, cv::IMREAD_COLOR);
-			cv::resize(img1, img1, LimitSize(img1.size(), nMaxSize));
-			cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
-			cv::imshow("Downloaded from GPU", img1);
-			cv::imshow("Decode From JPEG", img2);
-			int nKey = cv::waitKey(1) & 0xFF;
-			if (nKey == 27) {
-				break;
-			}
-			//cv::imwrite("data/" + std::to_string(nFrmId) + ".jpg", img1);
+			// cv::resize(img1, img1, LimitSize(img1.size(), nMaxSize));
+			// cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
+			// cv::imshow("Downloaded from GPU", img1);
+			// cv::imshow("Decode From JPEG", img2);
+			// int nKey = cv::waitKey(1) & 0xFF;
+			// if (nKey == 27) {
+			// 	break;
+			// }
+			cv::imwrite("data/" + std::to_string(nFrmId) + ".jpg", img1);
 		} else {
 			usleep(1000);
 		}

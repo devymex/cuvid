@@ -1,5 +1,6 @@
 {
 	"cmake.configureArgs": [
-		"-DCMAKE_VERBOSE_MAKEFILE=ON"
+		"-DCMAKE_VERBOSE_MAKEFILE=ON",
+		"-DCMAKE_INSTALL_PREFIX=${workspaceFolder}/build"
 	]
 }

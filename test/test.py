@@ -20,7 +20,9 @@ def size_fit_limit(size):
 dec = cuvid.Cuvid(gpu_id)
 dec.set_jpeg_quality(75)
 
-ret, frame_size = dec.start(rtsp_url)
+ret = dec.start(rtsp_url)
+frame_size = (int(dec.get(3)), int(dec.get(4)))
+
 last_frame_id = 0
 while True:
 	frame_id, img1, jpeg = dec.get_frame(True)
@@ -32,7 +34,7 @@ while True:
 			break
 		last_frame_id = 0
 		sleep(0.1)
-		ret, frame_size = dec.start(rtsp_url)
+		ret = dec.start(rtsp_url)
 	elif frame_id > last_frame_id:
 		last_frame_id = frame_id
 		limited_size = size_fit_limit((frame_size[0], frame_size[1]))

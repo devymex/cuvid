@@ -144,6 +144,9 @@ static PyMethodDef cuvid_methods[] = {
 		"cuvid_stop", (PyCFunction)CuvidStop,
 		METH_O, "Stop streaming and clear fail status."
 	}, {
+		"cuvid_get", (PyCFunction)CuvidGet,
+		METH_VARARGS, "Get information from videos."
+	}, {
 		"cuvid_set_jpeg_quality", (PyCFunction)CuvidSetJpegQuality,
 		METH_VARARGS, "[JPEG quality] 1~100"
 	}, {

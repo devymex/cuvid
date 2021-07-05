@@ -14,7 +14,7 @@ class Cuvid:
 		cuvid.cuvid_stop(self._cuvid)
 	
 	def get(self, propId):
-		return cuvid.get(self._cuvid, propId)
+		return cuvid.cuvid_get(self._cuvid, propId)
 
 	def set_jpeg_quality(self, quality):
 		cuvid.cuvid_set_jpeg_quality(self._cuvid, quality)
