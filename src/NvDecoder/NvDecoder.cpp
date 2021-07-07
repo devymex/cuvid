@@ -291,7 +291,9 @@ int NvDecoder::HandleVideoSequence(CUVIDEOFORMAT *pVideoFormat)
     CUDA_DRVAPI_CALL(cuCtxPushCurrent(m_cuContext));
     NVDEC_API_CALL(cuvidCreateDecoder(&m_hDecoder, &videoDecodeCreateInfo));
     CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
+#ifdef VERBOSE_LOG
     STOP_TIMER("Session Initialization Time: ");
+#endif
     return nDecodeSurface;
 }
 
