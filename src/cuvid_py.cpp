@@ -26,7 +26,7 @@ PyObject* CuvidCreate(PyObject *self, PyObject *pArgs) {
 	return PyCapsule_New((void*)pCuvid, "Cuvid", CuvidDestroy);
 }
 
-PyObject* CuvidStart(PyObject *self, PyObject *pArgs) {
+PyObject* CuvidOpen(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	char *pURL = nullptr;
 	CHECK(PyArg_ParseTuple(pArgs, "Os", &pObj, &pURL));
@@ -34,16 +34,16 @@ PyObject* CuvidStart(PyObject *self, PyObject *pArgs) {
 	CHECK_NOTNULL(pCuvid);
 
 	PyObject *pyResult = Py_False;
-	if (pCuvid->Start(pURL)) {
+	if (pCuvid->open(pURL)) {
 		Py_RETURN_TRUE;
 	}
 	Py_RETURN_FALSE;
 }
 
-PyObject* CuvidStop(PyObject *self, PyObject *pCapsule) {
+PyObject* CuvidClose(PyObject *self, PyObject *pCapsule) {
 	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
 	CHECK_NOTNULL(pCuvid);
-	pCuvid->Stop();
+	pCuvid->close();
 	Py_RETURN_NONE;
 }
 
@@ -58,10 +58,10 @@ PyObject* CuvidGet(PyObject *self, PyObject *pArgs) {
 	return PyFloat_FromDouble(dVal);
 }
 
-PyObject* CuvidGetCurrentStatus(PyObject *self, PyObject *pCapsule) {
+PyObject* CuvidStatus(PyObject *self, PyObject *pCapsule) {
 	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
 	CHECK_NOTNULL(pCuvid);
-	auto status = pCuvid->GetCurrentStatus();
+	auto status = pCuvid->status();
 	long nStatus = 0;
 	switch (status) {
 	case CuvidImpl::STATUS::FAILED: nStatus = -1; break;
@@ -77,7 +77,7 @@ PyObject* CuvidSetJpegQuality(PyObject *self, PyObject *pArgs) {
 
 	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
 	CHECK_NOTNULL(pCuvid);
-	pCuvid->SetJpegQuality(nQuality);
+	pCuvid->setJpegQuality(nQuality);
 	Py_RETURN_NONE;
 }
 
@@ -89,7 +89,7 @@ PyObject* NDArrayFromData(const std::vector<long> &shape, uint8_t *pData) {
 	return pRet;
 }
 
-PyObject* CuvidGetFrame(PyObject *self, PyObject *pArgs) {
+PyObject* CuvidRead(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	int nWithJpeg = 0;
 	CHECK(PyArg_ParseTuple(pArgs, "O|i", &pObj, &nWithJpeg));
@@ -98,8 +98,7 @@ PyObject* CuvidGetFrame(PyObject *self, PyObject *pArgs) {
 	CHECK_NOTNULL(pCuvid);
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
-	int64_t nFrameCnt = pCuvid->GetFrame(gpuImg,
-			nWithJpeg > 0 ? &strJpeg : nullptr);
+	int64_t nFrameCnt = pCuvid->read(gpuImg, nWithJpeg > 0 ? &strJpeg : nullptr);
 	cv::Mat img;
 	if (nFrameCnt >= 0 && !gpuImg.empty()) {
 		gpuImg.download(img);
@@ -138,10 +137,10 @@ static PyMethodDef cuvid_methods[] = {
 		"cuvid_create", (PyCFunction)CuvidCreate,
 		METH_VARARGS, "Create a cuvid object."
 	}, {
-		"cuvid_start", (PyCFunction)CuvidStart,
+		"cuvid_open", (PyCFunction)CuvidOpen,
 		METH_VARARGS, "Please make sure current status is STANDBY."
 	}, {
-		"cuvid_stop", (PyCFunction)CuvidStop,
+		"cuvid_close", (PyCFunction)CuvidClose,
 		METH_O, "Stop streaming and clear fail status."
 	}, {
 		"cuvid_get", (PyCFunction)CuvidGet,
@@ -150,10 +149,10 @@ static PyMethodDef cuvid_methods[] = {
 		"cuvid_set_jpeg_quality", (PyCFunction)CuvidSetJpegQuality,
 		METH_VARARGS, "[JPEG quality] 1~100"
 	}, {
-		"cuvid_get_current_status", (PyCFunction)CuvidGetCurrentStatus,
+		"cuvid_status", (PyCFunction)CuvidStatus,
 		METH_O, "[Status] 0: STANDBY, 1: WORKING, -1: FAILED"
 	}, {
-		"cuvid_get_frame", (PyCFunction)CuvidGetFrame,
+		"cuvid_read", (PyCFunction)CuvidRead,
 		METH_VARARGS, "[Return code] 0: Empty -1: Failed, >0: Successed"
 	},
 	{NULL, NULL, 0, NULL}

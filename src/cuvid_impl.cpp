@@ -99,7 +99,7 @@ CuvidImpl::CuvidImpl(int nGpuID)
 }
 
 CuvidImpl::~CuvidImpl() {
-	Stop();
+	close();
 	if (m_FilterPacket.data != nullptr) {
 		av_packet_unref(&m_FilterPacket);
 	}
@@ -110,8 +110,7 @@ CuvidImpl::~CuvidImpl() {
 	CUDA_CHECK(::cudaStreamDestroy(m_CudaStream));
 }
 
-bool CuvidImpl::Start(const std::string &strURL,
-		READ_MODE readMode) {
+bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	CHECK(m_Status == STATUS::STANDBY);
 
 	// Creating AV Context
@@ -193,8 +192,8 @@ bool CuvidImpl::Start(const std::string &strURL,
 	return true;
 }
 
-// Stop streaming and clear the FAILED status
-void CuvidImpl::Stop() {
+// close streaming and clear the FAILED status
+void CuvidImpl::close() {
 	m_Status = STATUS::STANDBY;
 	if (m_Worker.joinable()) {
 		m_Worker.join();
@@ -222,7 +221,7 @@ double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
 // Return Value: STATUS::WORKING if it working normally regardless of whether
 //   it is in blocking mode or not. STATUS::STANDBY if it is not started yet or
 //   streaming to end of the media. STATUS::FAILED if any error occured.
-CuvidImpl::STATUS CuvidImpl::GetCurrentStatus() const {
+CuvidImpl::STATUS CuvidImpl::status() const {
 	if (m_Worker.joinable()) {
 		return STATUS::WORKING;
 	}
@@ -233,7 +232,7 @@ CuvidImpl::STATUS CuvidImpl::GetCurrentStatus() const {
 //   otherwise it is failure. Please note that if the returned value
 //   equal to zero or is the save as the previous, the `frameImg` remains
 //   unchanged and the caller should retry to get the next frame.
-int64_t CuvidImpl::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
+int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
 	if (m_bBlocking) {
 		if (m_Worker.joinable()) {
@@ -332,7 +331,7 @@ void CuvidImpl::__WorkerProc() {
 	}
 }
 
-void CuvidImpl::SetJpegQuality(int nQuality) {
+void CuvidImpl::setJpegQuality(int nQuality) {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 	CHECK_GT(nQuality, 0);
 	CHECK_LE(nQuality, 100);

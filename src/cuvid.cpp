@@ -8,26 +8,26 @@ Cuvid::Cuvid(int nGpuID) {
 Cuvid::~Cuvid() {
 }
 
-bool Cuvid::Start(const std::string &strURL, READ_MODE readMode) {
-	return m_pImpl->Start(strURL, CuvidImpl::READ_MODE(readMode));
+bool Cuvid::open(const std::string &strURL, READ_MODE readMode) {
+	return m_pImpl->open(strURL, CuvidImpl::READ_MODE(readMode));
 }
 
-void Cuvid::Stop() {
-	m_pImpl->Stop();
+void Cuvid::close() {
+	m_pImpl->close();
 }
 
 double Cuvid::get(cv::VideoCaptureProperties prop) const {
 	return m_pImpl->get(prop);
 }
 
-Cuvid::STATUS Cuvid::GetCurrentStatus() const {
-	return (Cuvid::STATUS)m_pImpl->GetCurrentStatus();
+Cuvid::STATUS Cuvid::status() const {
+	return (Cuvid::STATUS)m_pImpl->status();
 }
 
-int64_t Cuvid::GetFrame(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
-	return m_pImpl->GetFrame(frameImg, pJpegData);
+int64_t Cuvid::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
+	return m_pImpl->read(frameImg, pJpegData);
 }
 
-void Cuvid::SetJpegQuality(int nQuality) {
-	m_pImpl->SetJpegQuality(nQuality);
+void Cuvid::setJpegQuality(int nQuality) {
+	m_pImpl->setJpegQuality(nQuality);
 }

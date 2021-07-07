@@ -42,18 +42,18 @@ public:
 
 	~CuvidImpl();
 
-	bool Start(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO);
+	bool open(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO);
 
-	void Stop();
+	void close();
 
 	double get(cv::VideoCaptureProperties prop) const;
 
-	STATUS GetCurrentStatus() const;
+	STATUS status() const;
 
-	int64_t GetFrame(cv::cuda::GpuMat &frameImg,
+	int64_t read(cv::cuda::GpuMat &frameImg,
 			std::string *pJpegData = nullptr);
 
-	void SetJpegQuality(int nQuality);
+	void setJpegQuality(int nQuality);
 
 private:
 	void __DecodeFrame(cv::cuda::GpuMat &gpuImg);
