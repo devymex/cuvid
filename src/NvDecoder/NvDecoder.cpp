@@ -403,8 +403,9 @@ int NvDecoder::ReconfigureDecoder(CUVIDEOFORMAT *pVideoFormat)
     CUDA_DRVAPI_CALL(cuCtxPushCurrent(m_cuContext));
     NVDEC_API_CALL(cuvidReconfigureDecoder(m_hDecoder, &reconfigParams));
     CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
+#ifdef VERBOSE_LOG
     STOP_TIMER("Session Reconfigure Time: ");
-
+#endif // #ifdef VERBOSE_LOG
     return nDecodeSurface;
 }
 
@@ -607,7 +608,9 @@ NvDecoder::~NvDecoder() {
         }
     }
     cuvidCtxLockDestroy(m_ctxLock);
+#ifdef VERBOSE_LOG
     STOP_TIMER("Session Deinitialization Time: ");
+#endif // #ifdef VERBOSE_LOG
 }
 
 int NvDecoder::Decode(const uint8_t *pData, int nSize, int nFlags, int64_t nTimestamp)
