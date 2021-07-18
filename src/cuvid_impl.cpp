@@ -141,7 +141,11 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	// Creating NvDecoder with Best Stream
 	// -----------------------------------
 	m_CurCodecId = ::FFmpeg2NvCodecId(pAVDecoder->id);
-	m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, m_CurCodecId, false));
+	try {
+		m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, m_CurCodecId, false));
+	} catch (...) {
+		return false;
+	}
 
 	// Initializing AV Bit Stream Filter for H.264/H.265
 	// -------------------------------------------------
