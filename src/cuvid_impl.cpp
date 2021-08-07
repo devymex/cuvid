@@ -118,10 +118,13 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	AVDictionary *pDict = nullptr;
 	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
 	AVFormatContext *pAVCtxRaw = nullptr;
-	if (::avformat_open_input(&pAVCtxRaw, strURL.c_str(),
-			nullptr, &pDict) != 0) {
+	auto nErrCode = ::avformat_open_input(&pAVCtxRaw, strURL.c_str(), nullptr, &pDict);
+	if (nErrCode != 0) {
 #ifdef VERBOSE_LOG
-		LOG(WARNING) << "Can't open stream: \"" << strURL << "\"";
+		char sz[1024] = {0};
+		av_make_error_string(sz, 1024, nErrCode);
+		LOG(WARNING) << "Can't open stream: \"" << strURL
+					 << "\", err_code=" << nErrCode << ", msg=" << sz;
 #endif
 		return false;
 	}

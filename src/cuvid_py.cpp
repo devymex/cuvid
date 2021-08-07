@@ -104,13 +104,12 @@ PyObject* CuvidRead(PyObject *self, PyObject *pArgs) {
 		gpuImg.download(img);
 	}
 
-	PyObject *pNpImg = Py_None;
-	PyObject *pJpeg = Py_None;
-	PyObject *pRet = Py_None;
+	PyObject *pNpImg = nullptr, *pJpeg = nullptr, *pRet = nullptr;
 	if (!img.empty()) {
 		std::vector<long> shape = { img.rows, img.cols, img.channels() };
 		pNpImg = NDArrayFromData(shape, img.data);
 	} else {
+		pNpImg = Py_None;
 		Py_XINCREF(pNpImg);
 	}
 	if (nWithJpeg) {
