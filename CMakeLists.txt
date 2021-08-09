@@ -22,11 +22,7 @@ ENDIF()
 FIND_PACKAGE(CUDA REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
 FIND_PACKAGE(OpenCV REQUIRED core highgui cudaimgproc)
-EXECUTE_PROCESS(COMMAND python3 -c "import site; print(site.getusersitepackages(), end='')"
-				OUTPUT_VARIABLE Python3_USER_SITE_DIR)
-EXECUTE_PROCESS(COMMAND python3 -c "import numpy; print(numpy.get_include(), end='')"
-				OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIRS)
-FIND_PACKAGE(PythonLibs; 3 REQUIRED)
+FIND_PACKAGE(PythonLibs; 3 REQUIRED) # cmake .. -DPYTHON_EXECUTABLE=$(which python3)
 
 # Compiler Options
 #-----------------
