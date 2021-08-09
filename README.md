@@ -100,9 +100,9 @@ sudo make install -j8
 cd cuvid
 mkdir build
 cd build
-cmake ..
+cmake .. -DPYTHON_EXECUTABLE=$(which python3)
 make all -j8
-make install
+sudo make install
 ```
 
 ## 4. Run Test
