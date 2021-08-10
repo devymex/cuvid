@@ -19,7 +19,7 @@ PyObject* CuvidCreate(PyObject *self, PyObject *pArgs) {
 	CHECK(PyArg_ParseTuple(pArgs, "i", &nDevID));
 
 #ifdef VERBOSE_LOG
-	LOG(INFO) << "Cuvid Created, DevID=nDevID";
+	LOG(INFO) << "Cuvid Created, DevID=" << nDevID;
 #endif
 
 	CuvidImpl *pCuvid = new CuvidImpl(nDevID);
