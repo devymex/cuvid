@@ -7,8 +7,8 @@ class Cuvid:
 	def __init__(self, gpu_id):
 		self._cuvid = cuvid.cuvid_create(gpu_id)
 
-	def open(self, url):
-		return cuvid.cuvid_open(self._cuvid, url)
+	def open(self, url, read_mode = 0):
+		return cuvid.cuvid_open(self._cuvid, url, read_mode)
 
 	def close(self):
 		cuvid.cuvid_close(self._cuvid)

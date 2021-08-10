@@ -29,12 +29,15 @@ PyObject* CuvidCreate(PyObject *self, PyObject *pArgs) {
 PyObject* CuvidOpen(PyObject *self, PyObject *pArgs) {
 	PyObject *pObj;
 	char *pURL = nullptr;
-	CHECK(PyArg_ParseTuple(pArgs, "Os", &pObj, &pURL));
+	auto nReadMode = (int32_t)CuvidImpl::READ_MODE::AUTO;
+	CHECK(PyArg_ParseTuple(pArgs, "Os|i", &pObj, &pURL, &nReadMode));
 	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
 	CHECK_NOTNULL(pCuvid);
+	CHECK_GE(nReadMode, 0);
+	CHECK_LE(nReadMode, 2);
 
 	PyObject *pyResult = Py_False;
-	if (pCuvid->open(pURL)) {
+	if (pCuvid->open(pURL, CuvidImpl::READ_MODE(nReadMode))) {
 		Py_RETURN_TRUE;
 	}
 	Py_RETURN_FALSE;
