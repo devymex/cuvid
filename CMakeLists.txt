@@ -26,6 +26,7 @@ EXECUTE_PROCESS(COMMAND python3 -c "import site; print(site.getusersitepackages(
 				OUTPUT_VARIABLE Python3_USER_SITE_DIR)
 EXECUTE_PROCESS(COMMAND python3 -c "import numpy; print(numpy.get_include(), end='')"
 				OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIRS)
+FIND_PACKAGE(PythonInterp)
 FIND_PACKAGE(PythonLibs; 3 REQUIRED)
 
 # Compiler Options
