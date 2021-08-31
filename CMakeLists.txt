@@ -28,8 +28,8 @@ EXECUTE_PROCESS(COMMAND python3 -c "import numpy; print(numpy.get_include(), end
 				OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIRS)
 EXECUTE_PROCESS(COMMAND python3 -c "from distutils import sysconfig; print(sysconfig.get_config_vars()['LIBDIR'], end='')"
 				OUTPUT_VARIABLE PYTHON_LIBRARY_DIR)
-FIND_PACKAGE(PythonInterp)
-FIND_PACKAGE(PythonLibs; 3 REQUIRED)
+FIND_PACKAGE(PythonInterp 3 REQUIRED)
+FIND_PACKAGE(PythonLibs 3 REQUIRED)
 
 # Compiler Options
 #-----------------
