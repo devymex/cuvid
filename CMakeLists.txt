@@ -23,14 +23,15 @@ OPTION(CUDA_ARCHITECTURES "CUDA Architectures" "60;75")
 FIND_PACKAGE(CUDA REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
 FIND_PACKAGE(OpenCV REQUIRED core highgui cudaimgproc)
-EXECUTE_PROCESS(COMMAND python3 -c "import site; print(site.getusersitepackages(), end='')"
-                OUTPUT_VARIABLE Python3_USER_SITE_DIR)
-EXECUTE_PROCESS(COMMAND python3 -c "import numpy; print(numpy.get_include(), end='')"
-                OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIRS)
-EXECUTE_PROCESS(COMMAND python3 -c "from distutils import sysconfig; print(sysconfig.get_config_vars()['LIBDIR'], end='')"
-                OUTPUT_VARIABLE PYTHON_LIBRARY_DIR)
+
 FIND_PACKAGE(PythonInterp 3 REQUIRED)
+EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "from distutils import sysconfig; print(sysconfig.get_config_vars()['LIBDIR'], end='')"
+                OUTPUT_VARIABLE PYTHON_LIBRARY_DIR)
 FIND_PACKAGE(PythonLibs 3 REQUIRED)
+EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import site; print(site.getusersitepackages(), end='')"
+                OUTPUT_VARIABLE Python3_USER_SITE_DIR)
+EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.get_include(), end='')"
+                OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIRS)
 
 # Compiler Options
 #-----------------
