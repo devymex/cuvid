@@ -438,4 +438,24 @@ class LogMessageVoidify {
 
 }  // namespace dmlc
 
+inline int64_t GetNowTimeSec() {
+	return std::chrono::duration_cast<std::chrono::seconds>(
+		std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+inline int64_t GetNowTimeMS() {
+	return std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+inline int64_t GetNowTimeUS() {
+	return std::chrono::duration_cast<std::chrono::microseconds>(
+		std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+inline int64_t GetNowTimeNS() {
+	return std::chrono::duration_cast<std::chrono::nanoseconds>(
+		std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
 #endif
