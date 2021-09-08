@@ -133,7 +133,6 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 
 	// Find the Best Stream in AV Context
 	// ----------------------------------
-	CHECK_GE(::avformat_find_stream_info(m_pAVCtx.get(), nullptr), 0);
 	AVCodec *pAVDecoder = nullptr;
 	m_nStreamId = ::av_find_best_stream(m_pAVCtx.get(), AVMEDIA_TYPE_VIDEO,
 			-1, -1, &pAVDecoder, 0);

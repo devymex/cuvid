@@ -72,3 +72,9 @@ cd cuvid
 ```
 
 按 ESC 退出测试程序。
+
+## 5. Link to Cuvid
+
+```cmake
+TARGET_LINK_LIBRARIES(YOUR_PRJ_NAME nvjpeg nvcuvid cuda avformat avcodec avutil)
+```
