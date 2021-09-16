@@ -16,11 +16,8 @@ class Cuvid:
 	def get(self, propId):
 		return cuvid.cuvid_get(self._cuvid, propId)
 
-	def set_jpeg_quality(self, quality):
-		cuvid.cuvid_set_jpeg_quality(self._cuvid, quality)
-
-	def status(self):
-		return cuvid.cuvid_status(self._cuvid)
+	def errcode(self):
+		return cuvid.cuvid_errcode(self._cuvid)
 
 	def read(self, with_jpeg = True):
 		if with_jpeg:

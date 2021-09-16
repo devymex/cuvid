@@ -20,8 +20,8 @@ double Cuvid::get(cv::VideoCaptureProperties prop) const {
 	return m_pImpl->get(prop);
 }
 
-Cuvid::STATUS Cuvid::status() const {
-	return (Cuvid::STATUS)m_pImpl->status();
+int32_t Cuvid::errcode() const {
+	return m_pImpl->errcode();
 }
 
 int64_t Cuvid::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
@@ -29,5 +29,4 @@ int64_t Cuvid::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 }
 
 void Cuvid::setJpegQuality(int nQuality) {
-	m_pImpl->setJpegQuality(nQuality);
 }

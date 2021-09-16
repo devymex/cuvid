@@ -1,6 +1,7 @@
 #ifndef __CUVID_IMPL_HPP
 #define __CUVID_IMPL_HPP
 
+#include "semaphore.hpp"
 #include "NvDecoder/NvDecoder.h"
 
 extern "C" {
@@ -17,6 +18,7 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <thread>
+#include <future>
 
 #define MAKE_STR(name) (#name)
 
@@ -32,10 +34,37 @@ extern "C" {
 			" failed: err_code=" << e; \
 	}}
 
+struct PACKET {
+	AVPacket _packet;
+	PACKET() {
+		_packet.data = nullptr;
+		_packet.size = 0;
+		av_init_packet(&_packet);
+	}
+	~PACKET() {
+		av_packet_unref(&_packet);
+	}
+
+	void reset() {
+		av_packet_unref(&_packet);
+		av_init_packet(&_packet);
+	}
+
+	operator AVPacket* () {
+		return &_packet;
+	}
+
+	AVPacket& get() {
+		return _packet;
+	}
+
+	PACKET(const PACKET &) = delete;
+	PACKET& operator =(const PACKET &) = delete;
+};
+
 // Python RTSP AV Nvidia Decoder
 class CuvidImpl {
 public:
-	enum class STATUS { STANDBY = 0, WORKING = 1, FAILED = 2 };
 	enum class READ_MODE { AUTO = 0, BLOCK = 1, ASYNC = 2 };
 
 	CuvidImpl(int nGpuID);
@@ -48,48 +77,51 @@ public:
 
 	double get(cv::VideoCaptureProperties prop) const;
 
-	STATUS status() const;
+	int32_t errcode() const;
 
 	int64_t read(cv::cuda::GpuMat &frameImg,
 			std::string *pJpegData = nullptr);
-
-	void setJpegQuality(int nQuality);
 
 private:
 	void __DecodeFrame(cv::cuda::GpuMat &gpuImg);
 
 	void __WorkerProc();
 
-	void __EncodeJPEG(cv::cuda::GpuMat &frameImg, std::string *pJpegData);
+	void __DemuxH26X(AVPacket &packet, bool &bEoF);
+
+	void __DemuxMPG4(AVPacket &packet, bool &bEoF);
 
 private:
-	int m_nGpuID = 0;
-	int m_nStreamId = -1;
-	bool m_bBlocking = false;
-	bool m_bEOF = false;
-	double m_dTimeBase = 0.;
+	// User settings
+	int m_nGpuID;
+	bool m_bBlocking;
 
-	std::shared_ptr<AVFormatContext> m_pAVCtx;
-	std::shared_ptr<AVBSFContext> m_pAVBsfc;
-	std::atomic<int64_t> m_nFrameCnt;
-	std::atomic<int64_t> m_nCursor;
-	AVPacket m_FilterPacket;
-	cudaVideoCodec m_CurCodecId;
-
+	// NV Decoder
 	std::shared_ptr<CUcontext> m_pCuCtx;
 	std::unique_ptr<NvDecoder> m_pDecoder;
-	
+	std::shared_ptr<AVFormatContext> m_pAVCtx;
+	std::shared_ptr<AVBSFContext> m_pAVBsfc;
+	cv::cuda::GpuMat m_BgraBuf;
+
+	// Video Info
+	int m_nStreamId;
+	cudaVideoCodec m_CurCodecId;
+	double m_dTimeBase;
+
+	// Video temp date
+	std::vector<uint8_t> m_Mp4Hdr;
+	PACKET m_FilterPacket;
+
+	// Producer & Customer
+	std::atomic<uint64_t> m_nNumDecoded;
+	std::atomic<int64_t> m_nCursor;
+	std::atomic<int32_t> m_nErrCode;
 	cv::cuda::GpuMat m_WorkingBuf;
-	cv::cuda::GpuMat m_BGRATmp;
-
-	std::thread m_Worker;
-	std::mutex m_Mutex;
-	std::atomic<STATUS> m_Status;
-
-	cudaStream_t m_CudaStream;
-	nvjpegHandle_t m_JpegHandle;
-	nvjpegEncoderState_t m_JpegState;
-	nvjpegEncoderParams_t m_JpegParams;
+	cv::cuda::GpuMat m_ReadingBuf;
+	std::mutex m_ReadingMutex;
+	semaphore m_WorkingSema;
+	semaphore m_ReadingSema;
+	std::future<void> m_Worker;
 };
 
 #endif //__CUVID_IMPL_HPP

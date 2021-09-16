@@ -3,18 +3,24 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <string>
 #include <unistd.h>
+#include <regex>
+#include <fstream>
 
-cv::Size LimitSize(const cv::Size &in, int nMaxSize) {
-	cv::Size out = in;
-	if (out.width >= out.height && out.width > nMaxSize) {
-		out.height = int((out.height * nMaxSize) / (float)out.width);
-		out.width = nMaxSize;
+#include <experimental/filesystem>
+namespace stdfs = std::experimental::filesystem;
+
+std::vector<std::string> EnumerateFiles(const std::string &strPath,
+		const std::string &strPattern) {
+	std::vector<std::string> filenames;
+	for (auto &entry : stdfs::recursive_directory_iterator(strPath,
+			stdfs::directory_options::skip_permission_denied)) {
+		auto strFilename = entry.path().filename().string();
+		std::smatch match;
+		if (std::regex_match(strFilename, match, std::regex(strPattern))) {
+			filenames.emplace_back(entry.path().string());
+		}
 	}
-	if (out.height >= out.width && out.height > nMaxSize) {
-		out.width = int((out.width * nMaxSize) / (float)out.height);
-		out.height = nMaxSize;
-	}
-	return out;
+	return filenames;
 }
 
 int main(int nArgCnt, char *ppArgs[]) {
@@ -27,47 +33,40 @@ int main(int nArgCnt, char *ppArgs[]) {
 	}
 	const int nMaxSize = 480;
 
-	Cuvid cuvid(nDevID);
-	cuvid.setJpegQuality(75);
+	auto files = EnumerateFiles("/data/bzj/nasa_videos/21061300", ".*\\.mp4");
+	std::sort(files.begin(), files.end());
+	files.clear();
+	std::ifstream inFile("../../debug/time_url_id.txt");
+	CHECK(inFile.is_open());
+	for (std::string strLine; std::getline(inFile, strLine); ) {
+		std::istringstream iss(strLine);
+		uint32_t nTime;
+		std::string strURL;
+		iss >> nTime >> strURL;
+		files.emplace_back(strURL);
+	}
 
-	CHECK(cuvid.open(strURL));
-	cv::Size frameSize(cuvid.get(cv::CAP_PROP_FRAME_WIDTH),
-					   cuvid.get(cv::CAP_PROP_FRAME_HEIGHT));
-	cv::cuda::GpuMat gpuImg;
-	cv::Mat img1, img2;
-	std::string strJpegData;
-	for (int64_t nLastFrame = 0; ; ) {
-		int64_t nFrmId = cuvid.read(gpuImg, &strJpegData);
-		LOG(INFO) << "frame_id: " << nFrmId;
-		if (nFrmId < 0) {
-			auto status = cuvid.status();
-			cuvid.close();
-			if (status == Cuvid::STATUS::STANDBY) {
+	Cuvid cuvid(nDevID);
+
+	for (auto &strFilename: files) {
+		cuvid.close();
+		LOG(INFO) << strFilename;
+		CHECK(cuvid.open(strFilename));
+		cv::Size frameSize(cuvid.get(cv::CAP_PROP_FRAME_WIDTH),
+						cuvid.get(cv::CAP_PROP_FRAME_HEIGHT));
+		cv::cuda::GpuMat gpuImg;
+		cv::Mat img1, img2;
+		for (int64_t nLastFrame = 0; ; ) {
+			int64_t nFrmId;
+			try {
+				nFrmId = cuvid.read(gpuImg);
+			} catch(...) {
+				LOG(INFO) << "exception! " << nFrmId;
 				break;
 			}
-			nLastFrame = 0;
-			for (bool nRet = false; !nRet; ) {
-				usleep(100 * 1000);
-				nRet = cuvid.open(strURL);
+			if (nFrmId < 0) {
+				break;
 			}
-		} else if (nFrmId > nLastFrame) {
-			// Skipping current frame if the nFrmId equal to zero or unchanged.
-			nLastFrame = nFrmId;
-			gpuImg.download(img1);
-			std::vector<uint8_t> bytes(strJpegData.size());
-			memcpy(bytes.data(), strJpegData.data(), strJpegData.size());
-			img2 = cv::imdecode(bytes, cv::IMREAD_COLOR);
-			// cv::resize(img1, img1, LimitSize(img1.size(), nMaxSize));
-			// cv::resize(img2, img2, LimitSize(img2.size(), nMaxSize));
-			// cv::imshow("Downloaded from GPU", img1);
-			// cv::imshow("Decode From JPEG", img2);
-			// int nKey = cv::waitKey(1) & 0xFF;
-			// if (nKey == 27) {
-			// 	break;
-			// }
-			cv::imwrite("data/" + std::to_string(nFrmId) + ".jpg", img1);
-		} else {
-			usleep(1000);
 		}
 	}
 	return 0;

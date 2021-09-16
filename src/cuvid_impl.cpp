@@ -24,19 +24,19 @@ struct AVINIT {
 	}
 } g_AVInit;
 
-inline cudaVideoCodec FFmpeg2NvCodecId(AVCodecID codecID) {
-	switch (codecID) {
-	case AV_CODEC_ID_MPEG1VIDEO:	return cudaVideoCodec_MPEG1;
-	case AV_CODEC_ID_MPEG2VIDEO:	return cudaVideoCodec_MPEG2;
-	case AV_CODEC_ID_MPEG4:			return cudaVideoCodec_MPEG4;
-	case AV_CODEC_ID_VC1:			return cudaVideoCodec_VC1;
-	case AV_CODEC_ID_H264:			return cudaVideoCodec_H264;
-	case AV_CODEC_ID_HEVC:			return cudaVideoCodec_HEVC;
-	case AV_CODEC_ID_VP8:			return cudaVideoCodec_VP8;
-	case AV_CODEC_ID_VP9:			return cudaVideoCodec_VP9;
-	case AV_CODEC_ID_MJPEG:			return cudaVideoCodec_JPEG;
-	default:						return cudaVideoCodec_NumCodecs;
-	}
+inline cudaVideoCodec FFmpeg2NvCodecId(AVCodecID id) {
+    switch (id) {
+    case AV_CODEC_ID_MPEG1VIDEO : return cudaVideoCodec_MPEG1;
+    case AV_CODEC_ID_MPEG2VIDEO : return cudaVideoCodec_MPEG2;
+    case AV_CODEC_ID_MPEG4      : return cudaVideoCodec_MPEG4;
+    case AV_CODEC_ID_VC1        : return cudaVideoCodec_VC1;
+    case AV_CODEC_ID_H264       : return cudaVideoCodec_H264;
+    case AV_CODEC_ID_HEVC       : return cudaVideoCodec_HEVC;
+    case AV_CODEC_ID_VP8        : return cudaVideoCodec_VP8;
+    case AV_CODEC_ID_VP9        : return cudaVideoCodec_VP9;
+    case AV_CODEC_ID_MJPEG      : return cudaVideoCodec_JPEG;
+    default                     : return cudaVideoCodec_NumCodecs;
+    }
 }
 
 void DestroyCudaContext(CUcontext *pCuCtx) {
@@ -66,33 +66,10 @@ void DestroyAVBsfc(AVBSFContext *pAVBsfc) {
 
 CuvidImpl::CuvidImpl(int nGpuID)
 		: m_nGpuID(nGpuID)
-		, m_nFrameCnt(0)
 		, m_nCursor(0)
-		, m_Status(STATUS::STANDBY) {
-	m_FilterPacket.data = nullptr;
-	m_FilterPacket.size = 0;
-
+		, m_WorkingSema(1) {
 	// CUDA Device Initialization
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
-	CUDA_CHECK(::cudaStreamCreate(&m_CudaStream));
-
-	// JPEG Encoder Initialization
-	NVJPEG_CHECK(::nvjpegCreateSimple(&m_JpegHandle));
-	NVJPEG_CHECK(::nvjpegEncoderStateCreate(m_JpegHandle,
-			&m_JpegState, m_CudaStream));
-	NVJPEG_CHECK(::nvjpegEncoderParamsCreate(m_JpegHandle,
-			&m_JpegParams, m_CudaStream));
-
-	NVJPEG_CHECK(::nvjpegEncoderParamsSetSamplingFactors(m_JpegParams,
-			NVJPEG_CSS_444, m_CudaStream));
-#if CUDA_VERSION_MINOR > 1
-	NVJPEG_CHECK(::nvjpegEncoderParamsSetEncoding(m_JpegParams,
-			NVJPEG_ENCODING_PROGRESSIVE_DCT_HUFFMAN, m_CudaStream));
-#endif
-	NVJPEG_CHECK(::nvjpegEncoderParamsSetQuality(m_JpegParams,
-			80, m_CudaStream));
-	NVJPEG_CHECK(::nvjpegEncoderParamsSetOptimizedHuffman(m_JpegParams,
-			1, m_CudaStream));
 
 	m_pCuCtx = ::MakeCudaContext(m_nGpuID);
 	CHECK_NOTNULL(m_pCuCtx.get());
@@ -100,19 +77,14 @@ CuvidImpl::CuvidImpl(int nGpuID)
 
 CuvidImpl::~CuvidImpl() {
 	close();
-	if (m_FilterPacket.data != nullptr) {
-		av_packet_unref(&m_FilterPacket);
-	}
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
-	NVJPEG_CHECK(::nvjpegEncoderParamsDestroy(m_JpegParams));
-	NVJPEG_CHECK(::nvjpegEncoderStateDestroy(m_JpegState));
-	NVJPEG_CHECK(::nvjpegDestroy(m_JpegHandle));
-	CUDA_CHECK(::cudaStreamDestroy(m_CudaStream));
 }
 
 bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
-	CHECK(m_Status == STATUS::STANDBY);
-
+	if (m_Worker.valid()) {
+		auto nWaitRes = m_Worker.wait_for(std::chrono::seconds(0));
+		CHECK(nWaitRes != std::future_status::timeout);
+	}
 	// Creating AV Context
 	// -------------------
 	AVDictionary *pDict = nullptr;
@@ -140,24 +112,18 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	CHECK_NOTNULL(pAVDecoder);
 	AVStream *pStream = m_pAVCtx->streams[m_nStreamId];
 
-	// Creating NvDecoder with Best Stream
-	// -----------------------------------
-	m_CurCodecId = ::FFmpeg2NvCodecId(pAVDecoder->id);
-	try {
-		m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, m_CurCodecId, false));
-	} catch (...) {
-		return false;
-	}
-
 	// Initializing AV Bit Stream Filter for H.264/H.265
 	// -------------------------------------------------
 	const AVBitStreamFilter *pBsf = nullptr;
+	m_CurCodecId = ::FFmpeg2NvCodecId(pAVDecoder->id);
 	if (m_CurCodecId == cudaVideoCodec_H264) {
 		pBsf = av_bsf_get_by_name("h264_mp4toannexb");
 	} else if (m_CurCodecId == cudaVideoCodec_HEVC) {
 		pBsf = av_bsf_get_by_name("hevc_mp4toannexb");
 	} else {
-		CHECK(m_CurCodecId == cudaVideoCodec_H264 || m_CurCodecId == cudaVideoCodec_HEVC);
+		CHECK(m_CurCodecId == cudaVideoCodec_H264 ||
+			  m_CurCodecId == cudaVideoCodec_HEVC ||
+			  m_CurCodecId == cudaVideoCodec_MPEG4);
 	}
 	if (pBsf != nullptr) {
 		AVBSFContext *pBsfc = nullptr;
@@ -166,19 +132,9 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 		avcodec_parameters_copy(pBsfc->par_in, pStream->codecpar);
 		CHECK_EQ(av_bsf_init(pBsfc), 0);
 	}
-	if (m_FilterPacket.data != nullptr) {
-		av_packet_unref(&m_FilterPacket);
-	}
-	av_init_packet(&m_FilterPacket);
-	m_FilterPacket.data = nullptr;
-	m_FilterPacket.size = 0;
 
 	// Initializing Internal Variables
 	// -------------------------------
-	m_nFrameCnt = 0;
-	m_nCursor = 0;
-	m_bEOF = false;
-	m_Status = STATUS::WORKING;
 	m_dTimeBase = av_q2d(pStream->time_base);
 	if (readMode == READ_MODE::AUTO) { // AUTO: block for file, async for rtsp
 		m_bBlocking = (strURL.find("rtsp://", 0) != 0);
@@ -192,19 +148,33 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 			  << ", Blocking: " << m_bBlocking;
 #endif
 
+	// Creating NvDecoder with Best Stream
+	// -----------------------------------
+	try {
+		m_pDecoder.reset(new NvDecoder(*m_pCuCtx.get(), true, m_CurCodecId, false));
+	} catch (...) {
+		return false;
+	}
+
 	// Streaming Started
 	// -----------------
-	m_Worker = std::thread(&CuvidImpl::__WorkerProc, this);
+	m_nErrCode = 0;
+	m_nNumDecoded = 0;
+	m_nCursor = 0;
+	m_FilterPacket.reset();
+	m_Mp4Hdr.clear();
+	m_ReadingSema.set_count(0);
+	m_WorkingSema.set_count(1);
+	m_Worker = std::async(std::launch::async, &CuvidImpl::__WorkerProc, this);
 	return true;
 }
 
 // close streaming and clear the FAILED status
 void CuvidImpl::close() {
-	m_Status = STATUS::STANDBY;
-	if (m_Worker.joinable()) {
-		m_Worker.join();
+	m_nErrCode = AVERROR_EXIT;
+	if (m_Worker.valid()) {
+		m_Worker.wait();
 	}
-	m_bBlocking = false;
 }
 
 double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
@@ -224,14 +194,8 @@ double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
 	return 0.f;
 }
 
-// Return Value: STATUS::WORKING if it working normally regardless of whether
-//   it is in blocking mode or not. STATUS::STANDBY if it is not started yet or
-//   streaming to end of the media. STATUS::FAILED if any error occured.
-CuvidImpl::STATUS CuvidImpl::status() const {
-	if (m_Worker.joinable()) {
-		return STATUS::WORKING;
-	}
-	return m_Status;
+int32_t CuvidImpl::errcode() const {
+	return m_nErrCode;
 }
 
 // Return Value: greater or equel to zero if it working normally,
@@ -240,109 +204,151 @@ CuvidImpl::STATUS CuvidImpl::status() const {
 //   unchanged and the caller should retry to get the next frame.
 int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
-	if (m_bBlocking) {
-		if (m_Worker.joinable()) {
-			m_Worker.join();
-		}
-	}
-
-	int64_t nFrameCnt = -1;
-	if (m_Status == STATUS::WORKING) {
-		cv::cuda::GpuMat outImg;
-		m_Mutex.lock();
-		if (!m_WorkingBuf.empty()) {
-			m_WorkingBuf.copyTo(outImg);
-		}
-		nFrameCnt = m_nCursor;
-		m_Mutex.unlock();
+	int nCursor = -1;
+	if (m_nErrCode != AVERROR_EXIT) {
 		if (m_bBlocking) {
-			m_Worker = std::thread(&CuvidImpl::__WorkerProc, this);
-		}
-		if (!outImg.empty()) {
-			frameImg.swap(outImg);
-			if (pJpegData != nullptr) {
-				__EncodeJPEG(frameImg, pJpegData);
+			m_ReadingSema.lock();
+			if (m_nErrCode != 0) {
+				m_Worker.wait();
+				if (m_nErrCode != AVERROR_EOF) {
+					throw (int)m_nErrCode;
+				}
+			}
+
+			frameImg.swap(m_WorkingBuf);
+			nCursor = m_nCursor;
+			if (m_nErrCode == AVERROR_EOF) {
+				m_nErrCode = AVERROR_EXIT;
+			}
+			m_WorkingSema.unlock();
+		} else {
+			m_ReadingSema.lock();
+			std::lock_guard<std::mutex> locker(m_ReadingMutex);
+			if (m_nErrCode == AVERROR_EXIT) {
+				return -1;
+			} else if (m_nErrCode != 0) {
+				m_Worker.wait();
+				if (m_nErrCode != AVERROR_EOF) {
+					throw (int)m_nErrCode;
+				}
+			}
+			if (!m_WorkingBuf.empty()) {
+				frameImg.swap(m_WorkingBuf);
+			}
+			nCursor = m_nCursor;
+			if (m_nErrCode == AVERROR_EOF) {
+				m_nErrCode = AVERROR_EXIT;
 			}
 		}
 	}
-	return nFrameCnt;
+	return nCursor;
 }
 
 void CuvidImpl::__WorkerProc() {
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
-	const int64_t nUserTimeScale = 1000;
-	AVPacket packet;
-	for (; m_Status == STATUS::WORKING; ) {
-		int64_t nDecodedFrames = 0;
-		if (m_nCursor == m_nFrameCnt) {
-			if (m_bEOF) {
-				m_Status = STATUS::STANDBY; // streaming stopped  spontaneously
-				break;
-			}
-			av_init_packet(&packet);
-			int64_t nRet = -1;
-			for (; ; ::av_packet_unref(&packet)) {
-				nRet = ::av_read_frame(m_pAVCtx.get(), &packet);
-				if (nRet < 0 || packet.stream_index == m_nStreamId) {
-					break;
-				}
-			}
-			if (nRet >= 0 || nRet == AVERROR_EOF) {
-				if (nRet == AVERROR_EOF) {
-					CHECK_EQ(av_bsf_send_packet(m_pAVBsfc.get(), nullptr), 0);
+	PACKET packet;
+	try {
+		bool bEof = false;
+		for (; m_nErrCode == 0; ) {
+			if (m_nNumDecoded > m_nCursor) {
+				if (m_bBlocking) {
+					m_WorkingSema.lock();
+					__DecodeFrame(m_WorkingBuf);
+					++m_nCursor;
+					m_ReadingSema.unlock();
 				} else {
-					CHECK_EQ(av_bsf_send_packet(m_pAVBsfc.get(), &packet), 0);
-				}
-				for (int32_t nErrCode = 0; nErrCode != AVERROR_EOF;) {
-					if (m_FilterPacket.data) {
-						av_packet_unref(&m_FilterPacket);
-					}
-					nErrCode = av_bsf_receive_packet(m_pAVBsfc.get(), &m_FilterPacket);
-					if (nErrCode == AVERROR(EAGAIN)) {
-						break;
-					}
-					uint8_t *pData = m_FilterPacket.data;
-					int nSize = m_FilterPacket.size;
-					int nFlag = 0;
-					int64_t pts = m_FilterPacket.pts * nUserTimeScale * m_dTimeBase;
-					if (nErrCode == AVERROR_EOF) {
-						nFlag = CUVID_PKT_ENDOFSTREAM;
-						m_bEOF = true;
-					}
-					nDecodedFrames += m_pDecoder->Decode(pData, nSize, nFlag, pts);
+					std::lock_guard<std::mutex> locker(m_ReadingMutex);
+					__DecodeFrame(m_WorkingBuf);
+					++m_nCursor;
+					m_ReadingSema.unlock();
 				}
 			} else {
-#ifdef VERBOSE_LOG
-				std::string strMsg(1024, '\0');
-				auto nErr = av_strerror(nRet, (char *)strMsg.data(), strMsg.size());
-				if (nErr < 0) {
-					strMsg = "UNKNOWN";
+				if (bEof) {
+					throw int32_t(AVERROR_EOF);
 				}
-				LOG(WARNING) << "One frame lost, code=" << nRet
-							<< ", message=\"" << strMsg << "\"";
+				int32_t nErrCode = 0;
+				for (packet.reset(); ; packet.reset()) {
+					nErrCode = ::av_read_frame(m_pAVCtx.get(), packet);
+					if (nErrCode < 0 || packet.get().stream_index == m_nStreamId) {
+						break;
+					}
+				}
+				if (nErrCode < 0 && nErrCode != AVERROR_EOF) {
+#ifdef VERBOSE_LOG
+					std::string strMsg(1024, '\0');
+					auto nErr = av_strerror(nErrCode, (char *)strMsg.data(), strMsg.size());
+					if (nErr < 0) {
+						strMsg = "UNKNOWN";
+					}
+					LOG(WARNING) << "One frame lost, code=" << nErrCode
+								<< ", message=\"" << strMsg << "\"";
 #endif
-				m_Status = STATUS::FAILED;
+					throw nErrCode;
+				}
+				bEof = (nErrCode == AVERROR_EOF);
+				if (m_CurCodecId == cudaVideoCodec_H264 ||
+					m_CurCodecId == cudaVideoCodec_HEVC) {
+					__DemuxH26X(packet.get(), bEof);
+				} else {
+					__DemuxMPG4(packet.get(), bEof);
+				}
+				packet.reset();
 			}
-			av_packet_unref(&packet);
 		}
-		if (nDecodedFrames > 0 || m_nCursor < m_nFrameCnt) {
-			std::lock_guard<std::mutex> locker(m_Mutex);
-			m_nFrameCnt += nDecodedFrames;
-			__DecodeFrame(m_WorkingBuf);
-			++m_nCursor;
-			if (m_bBlocking) {
-				break;
-			}
+	} catch (int32_t nErrCode) {
+		m_nErrCode = nErrCode;
+	} catch (...) {
+		m_nErrCode = AVERROR(EINTR);
+	}
+	m_ReadingSema.unlock();
+}
+
+void CuvidImpl::__DemuxH26X(AVPacket &packet, bool &bEoF) {
+	int32_t nErrCode = 0;
+	CHECK_NOTNULL(m_pAVBsfc);
+	if (bEoF) {
+		nErrCode = av_bsf_send_packet(m_pAVBsfc.get(), nullptr);
+	} else {
+		nErrCode = av_bsf_send_packet(m_pAVBsfc.get(), &packet);
+	}
+	if (nErrCode != 0) {
+		throw nErrCode;
+	}
+	for (bEoF = false; !bEoF;) {
+		m_FilterPacket.reset();
+		nErrCode = av_bsf_receive_packet(m_pAVBsfc.get(), m_FilterPacket);
+		if (nErrCode == AVERROR(EAGAIN)) {
+			break;
+		} else if (nErrCode == AVERROR_EOF) {
+			bEoF = CUVID_PKT_ENDOFSTREAM;
+			nErrCode = 0;
+		} else if (nErrCode < 0) {
+			throw nErrCode;
 		}
+		m_nNumDecoded += (uint32_t)m_pDecoder->Decode(
+			m_FilterPacket.get().data, m_FilterPacket.get().size, (int)bEoF,
+			m_FilterPacket.get().pts * 1000 * m_dTimeBase);
 	}
 }
 
-void CuvidImpl::setJpegQuality(int nQuality) {
-	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
-	CHECK_GT(nQuality, 0);
-	CHECK_LE(nQuality, 100);
-	NVJPEG_CHECK(::nvjpegEncoderParamsSetQuality(m_JpegParams,
-			nQuality, m_CudaStream));
+void CuvidImpl::__DemuxMPG4(AVPacket &packet, bool &bEoF) {
+	m_Mp4Hdr.clear();
+	if (m_nNumDecoded == 0) {
+		auto nExtraSize = m_pAVCtx->streams[m_nStreamId]->codecpar->extradata_size;
+		if (nExtraSize > 0) {
+			m_Mp4Hdr.resize(nExtraSize + packet.size - 3);
+			auto src = m_pAVCtx->streams[m_nStreamId]->codecpar->extradata;
+			m_Mp4Hdr.assign(src, src + nExtraSize);
+			m_Mp4Hdr.insert(m_Mp4Hdr.end(), packet.data + 3, packet.data + packet.size - 3);
+		}
+	}
+	if (m_Mp4Hdr.empty()) {
+		m_Mp4Hdr.assign(packet.data, packet.data + packet.size);
+	}
+
+	m_nNumDecoded += (uint32_t)m_pDecoder->Decode(m_Mp4Hdr.data(),
+		m_Mp4Hdr.size(), (int)bEoF,
+		m_FilterPacket.get().pts * 1000 * m_dTimeBase);
 }
 
 void CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
@@ -357,11 +363,11 @@ void CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 	uint8_t *pSrc = m_pDecoder->GetFrame();
 	CHECK_NOTNULL(pSrc);
 
-	if (m_BGRATmp.size() != imgSize || m_BGRATmp.channels() != 4
-			|| m_BGRATmp.type() != CV_8UC4) {
-		m_BGRATmp = cv::cuda::GpuMat(imgSize, CV_8UC4);
+	if (m_BgraBuf.size() != imgSize || m_BgraBuf.channels() != 4
+			|| m_BgraBuf.type() != CV_8UC4) {
+		m_BgraBuf = cv::cuda::GpuMat(imgSize, CV_8UC4);
 	}
-	uint8_t *pRGBATmp = m_BGRATmp.ptr<uint8_t>();
+	uint8_t *pRGBATmp = m_BgraBuf.ptr<uint8_t>();
 	if (m_pDecoder->GetBitDepth() == 8) {
 		if (frameFormat == cudaVideoSurfaceFormat_YUV444) {
 			::YUV444ToColor32<BGRA32>(pSrc, imgSize.width, pRGBATmp,
@@ -383,24 +389,6 @@ void CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 			|| gpuImg.type() != CV_8UC3) {
 		gpuImg = cv::cuda::GpuMat(imgSize, CV_8UC3);
 	}
-	::BGRA32ToBgr24(m_BGRATmp.data, gpuImg.data, imgSize.width, imgSize.height,
+	::BGRA32ToBgr24(m_BgraBuf.data, gpuImg.data, imgSize.width, imgSize.height,
 			gpuImg.step);
-}
-
-void CuvidImpl::__EncodeJPEG(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
-	nvjpegImage_t nvImg = { 0 };
-	nvImg.channel[0] = frameImg.data;
-	nvImg.pitch[0] = frameImg.step;
-	NVJPEG_CHECK(::nvjpegEncodeImage(m_JpegHandle, m_JpegState,
-			m_JpegParams, &nvImg, NVJPEG_INPUT_BGRI,
-			frameImg.cols, frameImg.rows, m_CudaStream));
-	size_t nSize = 0;
-	NVJPEG_CHECK(::nvjpegEncodeRetrieveBitstream(m_JpegHandle,
-			m_JpegState, NULL, &nSize, m_CudaStream));
-	CHECK_GT(nSize, 0);
-	pJpegData->resize(nSize);
-	CUDA_CHECK(::cudaStreamSynchronize(m_CudaStream));
-	NVJPEG_CHECK(::nvjpegEncodeRetrieveBitstream(m_JpegHandle, 
-			m_JpegState, (uint8_t*)(pJpegData->data()), &nSize, 0));
-	CUDA_CHECK(::cudaStreamSynchronize(m_CudaStream));
 }

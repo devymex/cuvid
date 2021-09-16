@@ -61,27 +61,10 @@ PyObject* CuvidGet(PyObject *self, PyObject *pArgs) {
 	return PyFloat_FromDouble(dVal);
 }
 
-PyObject* CuvidStatus(PyObject *self, PyObject *pCapsule) {
+PyObject* CuvidErrCode(PyObject *self, PyObject *pCapsule) {
 	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
 	CHECK_NOTNULL(pCuvid);
-	auto status = pCuvid->status();
-	long nStatus = 0;
-	switch (status) {
-	case CuvidImpl::STATUS::FAILED: nStatus = -1; break;
-	case CuvidImpl::STATUS::WORKING: nStatus = 1; break;
-	}
-	return PyLong_FromLong(nStatus);
-}
-
-PyObject* CuvidSetJpegQuality(PyObject *self, PyObject *pArgs) {
-	PyObject *pObj;
-	int nQuality = -1;
-	CHECK(PyArg_ParseTuple(pArgs, "Oi", &pObj, &nQuality));
-
-	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
-	CHECK_NOTNULL(pCuvid);
-	pCuvid->setJpegQuality(nQuality);
-	Py_RETURN_NONE;
+	return PyLong_FromLong(pCuvid->errcode());
 }
 
 PyObject* NDArrayFromData(const std::vector<long> &shape, uint8_t *pData) {
@@ -148,10 +131,7 @@ static PyMethodDef cuvid_methods[] = {
 		"cuvid_get", (PyCFunction)CuvidGet,
 		METH_VARARGS, "Get information from videos."
 	}, {
-		"cuvid_set_jpeg_quality", (PyCFunction)CuvidSetJpegQuality,
-		METH_VARARGS, "[JPEG quality] 1~100"
-	}, {
-		"cuvid_status", (PyCFunction)CuvidStatus,
+		"cuvid_status", (PyCFunction)CuvidErrCode,
 		METH_O, "[Status] 0: STANDBY, 1: WORKING, -1: FAILED"
 	}, {
 		"cuvid_read", (PyCFunction)CuvidRead,
