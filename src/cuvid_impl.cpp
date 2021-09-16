@@ -172,9 +172,14 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 // close streaming and clear the FAILED status
 void CuvidImpl::close() {
 	m_nErrCode = AVERROR_EXIT;
+	m_WorkingSema.unlock();
 	if (m_Worker.valid()) {
-		m_Worker.wait();
+		auto waitRes = m_Worker.wait_for(std::chrono::seconds(10));
+		if (waitRes == std::future_status::timeout) {
+			throw AVERROR_BUG;
+		}
 	}
+	m_nErrCode = AVERROR_EXIT;
 }
 
 double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
