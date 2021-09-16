@@ -67,6 +67,9 @@ int main(int nArgCnt, char *ppArgs[]) {
 			if (nFrmId < 0) {
 				break;
 			}
+			if (nFrmId > 100) {
+				break;
+			}
 		}
 	}
 	return 0;
