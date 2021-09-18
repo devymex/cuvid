@@ -217,6 +217,8 @@ int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 				m_Worker.wait();
 				if (m_nErrCode != AVERROR_EOF) {
 					throw (int)m_nErrCode;
+				} else if (m_nLastCursor == m_nCursor) {
+					return -1;
 				}
 			}
 
@@ -246,6 +248,7 @@ int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
 			}
 		}
 	}
+	m_nLastCursor = nCursor;
 	return nCursor;
 }
 

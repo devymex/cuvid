@@ -24,7 +24,7 @@ std::vector<std::string> EnumerateFiles(const std::string &strPath,
 }
 
 int main(int nArgCnt, char *ppArgs[]) {
-	CHECK_GE(nArgCnt, 2) << "Usage: " << ppArgs[0] << " <RTSP_URL> [GPU_ID]";
+	CHECK_GE(nArgCnt, 2) << "Usage: " << ppArgs[0] << " <SOURCE> [GPU_ID]";
 	const std::string strURL = ppArgs[1];
 	int nDevID = 0;
 	if (nArgCnt > 2) {
@@ -33,22 +33,25 @@ int main(int nArgCnt, char *ppArgs[]) {
 	}
 	const int nMaxSize = 480;
 
-	auto files = EnumerateFiles("/data/bzj/nasa_videos/21061300", ".*\\.mp4");
-	std::sort(files.begin(), files.end());
-	files.clear();
-	std::ifstream inFile("../../debug/time_url_id.txt");
-	CHECK(inFile.is_open());
-	for (std::string strLine; std::getline(inFile, strLine); ) {
-		std::istringstream iss(strLine);
-		uint32_t nTime;
-		std::string strURL;
-		iss >> nTime >> strURL;
-		files.emplace_back(strURL);
+	std::string strSource {ppArgs[1]};
+	std::vector<std::string> filenames;
+	if (stdfs::is_directory(strSource)) {
+		filenames = EnumerateFiles(strSource, ".*\\.mp4");
+	} else if (stdfs::is_regular_file(strSource)) {
+		if (std::regex_match(strSource, std::regex(".*\\.txt"))) {
+			std::ifstream inFile("../../debug/time_url_id.txt");
+			CHECK(inFile.is_open());
+			for (std::string strLine; std::getline(inFile, strLine); ) {
+				filenames.emplace_back(std::move(strLine));
+			}
+		} else {
+			filenames.emplace_back(std::move(strSource));
+		}
 	}
 
 	Cuvid cuvid(nDevID);
 
-	for (auto &strFilename: files) {
+	for (auto &strFilename: filenames) {
 		cuvid.close();
 		LOG(INFO) << strFilename;
 		CHECK(cuvid.open(strFilename));
@@ -60,14 +63,15 @@ int main(int nArgCnt, char *ppArgs[]) {
 			int64_t nFrmId;
 			try {
 				nFrmId = cuvid.read(gpuImg);
+				nLastFrame = nFrmId;
+				if (gpuImg.empty()) {
+					throw "Empty frame!";
+				}
 			} catch(...) {
 				LOG(INFO) << "exception! " << nFrmId;
 				break;
 			}
 			if (nFrmId < 0) {
-				break;
-			}
-			if (nFrmId > 100) {
 				break;
 			}
 		}
