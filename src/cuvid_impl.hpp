@@ -112,8 +112,9 @@ private:
 	PACKET m_FilterPacket;
 
 	// Producer & Customer
-	std::atomic<uint64_t> m_nNumDecoded;
+	int64_t m_nLastCursor;
 	std::atomic<int64_t> m_nCursor;
+	std::atomic<uint64_t> m_nNumDecoded;
 	std::atomic<int32_t> m_nErrCode;
 	cv::cuda::GpuMat m_WorkingBuf;
 	cv::cuda::GpuMat m_ReadingBuf;
