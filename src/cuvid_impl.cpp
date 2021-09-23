@@ -207,7 +207,7 @@ int32_t CuvidImpl::errcode() const {
 //   otherwise it is failure. Please note that if the returned value
 //   equal to zero or is the save as the previous, the `frameImg` remains
 //   unchanged and the caller should retry to get the next frame.
-int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
+int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg) {
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
 	int nCursor = -1;
 	if (m_nErrCode != AVERROR_EXIT) {

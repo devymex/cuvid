@@ -75,22 +75,19 @@ PyObject* NDArrayFromData(const std::vector<long> &shape, uint8_t *pData) {
 	return pRet;
 }
 
-PyObject* CuvidRead(PyObject *self, PyObject *pArgs) {
-	PyObject *pObj;
-	int nWithJpeg = 0;
-	CHECK(PyArg_ParseTuple(pArgs, "O|i", &pObj, &nWithJpeg));
-
-	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pObj, "Cuvid");
+PyObject* CuvidRead(PyObject *self, PyObject *pCapsule) {
+	auto pCuvid = (CuvidImpl*)PyCapsule_GetPointer(pCapsule, "Cuvid");
 	CHECK_NOTNULL(pCuvid);
+
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
-	int64_t nFrameCnt = pCuvid->read(gpuImg, nWithJpeg > 0 ? &strJpeg : nullptr);
+	int64_t nFrameCnt = pCuvid->read(gpuImg);
 	cv::Mat img;
 	if (nFrameCnt >= 0 && !gpuImg.empty()) {
 		gpuImg.download(img);
 	}
 
-	PyObject *pNpImg = nullptr, *pJpeg = nullptr, *pRet = nullptr;
+	PyObject *pNpImg = nullptr, *pRet = nullptr;
 	if (!img.empty()) {
 		std::vector<long> shape = { img.rows, img.cols, img.channels() };
 		pNpImg = NDArrayFromData(shape, img.data);
@@ -98,21 +95,7 @@ PyObject* CuvidRead(PyObject *self, PyObject *pArgs) {
 		pNpImg = Py_None;
 		Py_XINCREF(pNpImg);
 	}
-	if (nWithJpeg) {
-		if (!strJpeg.empty()) {
-#ifdef JPEG_AS_NUMPY
-			pJpeg = NDArrayFromData({ (int)strJpeg.size() }, strJpeg.data());
-#else // #ifdef FRAME_AS_NUMPY
-			pJpeg = PyBytes_FromStringAndSize(strJpeg.data(), strJpeg.size());
-#endif // #ifdef FRAME_AS_NUMPY
-		} else {
-			Py_XINCREF(pJpeg);
-		}
-		pRet = PyTuple_Pack(3, PyLong_FromLong(nFrameCnt), pNpImg, pJpeg);
-	} else {
-		pRet = PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
-	}
-	Py_XDECREF(pJpeg);
+	pRet = PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
 	Py_XDECREF(pNpImg);
 	return pRet;
 }
@@ -135,7 +118,7 @@ static PyMethodDef cuvid_methods[] = {
 		METH_O, "[Status] 0: STANDBY, 1: WORKING, -1: FAILED"
 	}, {
 		"cuvid_read", (PyCFunction)CuvidRead,
-		METH_VARARGS, "[Return code] 0: Empty -1: Failed, >0: Successed"
+		METH_O, "[Return code] 0: Empty -1: Failed, >0: Successed"
 	},
 	{NULL, NULL, 0, NULL}
 };

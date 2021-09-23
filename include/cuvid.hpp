@@ -23,9 +23,7 @@ public:
 
 	int32_t errcode() const;
 
-	int64_t read(cv::cuda::GpuMat &frameImg, std::string *pJpegData = nullptr);
-
-	void setJpegQuality(int nQuality);
+	int64_t read(cv::cuda::GpuMat &frameImg);
 
 private:
 	std::unique_ptr<CuvidImpl> m_pImpl;

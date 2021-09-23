@@ -79,8 +79,7 @@ public:
 
 	int32_t errcode() const;
 
-	int64_t read(cv::cuda::GpuMat &frameImg,
-			std::string *pJpegData = nullptr);
+	int64_t read(cv::cuda::GpuMat &frameImg);
 
 private:
 	void __DecodeFrame(cv::cuda::GpuMat &gpuImg);

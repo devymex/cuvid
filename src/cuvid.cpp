@@ -24,9 +24,6 @@ int32_t Cuvid::errcode() const {
 	return m_pImpl->errcode();
 }
 
-int64_t Cuvid::read(cv::cuda::GpuMat &frameImg, std::string *pJpegData) {
-	return m_pImpl->read(frameImg, pJpegData);
-}
-
-void Cuvid::setJpegQuality(int nQuality) {
+int64_t Cuvid::read(cv::cuda::GpuMat &frameImg) {
+	return m_pImpl->read(frameImg);
 }
