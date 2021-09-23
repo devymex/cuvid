@@ -17,5 +17,5 @@ class Cuvid:
         return cuvid.cuvid_errcode(self._cuvid)
 
     def read(self):
-        frame_id, img = cuvid.cuvid_read(self._cuvid, False)
+        frame_id, img = cuvid.cuvid_read(self._cuvid)
         return (frame_id, img)
