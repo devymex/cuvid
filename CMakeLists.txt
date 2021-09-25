@@ -17,7 +17,7 @@ ENABLE_LANGUAGE(CUDA)
 # ------------
 OPTION(JPEG_AS_NUMPY "GetFrame returns jpeg as a numpy ndarray" OFF)
 OPTION(CUDA_ARCHITECTURES "CUDA Architectures" "60;75")
-OPTION(NVDRV_LIBRARY_DIR "The path include libnvcuvid.so" "")
+OPTION(NVCUVID_LIBRARY_DIR "The path include libnvcuvid.so" "")
 
 # Dependencies
 # ------------
@@ -47,7 +47,7 @@ STRING(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 IF(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     LIST(APPEND COMPILE_DEFINITIONS -DVERBOSE_LOG)
 ENDIF()
-LINK_DIRECTORIES("${PYTHON_LIBRARY_DIR}" "${NVDRV_LIBRARY_DIR}")
+LINK_DIRECTORIES("${PYTHON_LIBRARY_DIR}" "${NVCUVID_LIBRARY_DIR}")
 
 # Build Main Library
 # ------------------
