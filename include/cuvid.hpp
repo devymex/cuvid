@@ -23,7 +23,7 @@ public:
 
 	int32_t errcode() const;
 
-	int64_t read(cv::cuda::GpuMat &frameImg);
+	int64_t read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS = 0);
 
 private:
 	std::unique_ptr<CuvidImpl> m_pImpl;

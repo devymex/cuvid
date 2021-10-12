@@ -207,14 +207,21 @@ int32_t CuvidImpl::errcode() const {
 //   otherwise it is failure. Please note that if the returned value
 //   equal to zero or is the save as the previous, the `frameImg` remains
 //   unchanged and the caller should retry to get the next frame.
-int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg) {
+int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
 	int nCursor = -1;
 	if (m_nErrCode != AVERROR_EXIT) {
 		if (m_bBlocking) {
 			m_ReadingSema.lock();
 			if (m_nErrCode != 0) {
-				m_Worker.wait();
+				if (nTimeoutUS > 0) {
+					auto status = m_Worker.wait_for(std::chrono::milliseconds(nTimeoutUS));
+					if (status != std::future_status::ready) {
+						return -1;
+					}
+				} else {
+					m_Worker.wait();
+				}
 				if (m_nErrCode != AVERROR_EOF) {
 					throw (int)m_nErrCode;
 				} else if (m_nLastCursor == m_nCursor) {
