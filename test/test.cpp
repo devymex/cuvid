@@ -62,7 +62,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 		for (int64_t nLastFrame = 0; ; ) {
 			int64_t nFrmId;
 			try {
-				nFrmId = cuvid.read(gpuImg);
+				auto [nFrmId, nTimeStamp] = cuvid.read(gpuImg);
 				nLastFrame = nFrmId;
 				if (gpuImg.empty()) {
 					throw "Empty frame!";

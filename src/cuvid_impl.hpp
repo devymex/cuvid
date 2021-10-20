@@ -79,10 +79,10 @@ public:
 
 	int32_t errcode() const;
 
-	int64_t read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS = 0);
+	std::pair<int64_t, int64_t> read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS = 0);
 
 private:
-	void __DecodeFrame(cv::cuda::GpuMat &gpuImg);
+	int64_t __DecodeFrame(cv::cuda::GpuMat &gpuImg);
 
 	void __WorkerProc();
 
@@ -114,6 +114,7 @@ private:
 	// Producer & Customer
 	int64_t m_nLastCursor;
 	std::atomic<int64_t> m_nCursor;
+	std::atomic<int64_t> m_nTimeStamp;
 	std::atomic<uint64_t> m_nNumDecoded;
 	std::atomic<int32_t> m_nErrCode;
 	cv::cuda::GpuMat m_WorkingBuf;

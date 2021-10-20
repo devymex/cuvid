@@ -81,7 +81,8 @@ PyObject* CuvidRead(PyObject *self, PyObject *pCapsule) {
 
 	cv::cuda::GpuMat gpuImg;
 	std::string strJpeg;
-	int64_t nFrameCnt = pCuvid->read(gpuImg);
+	auto [nFrameCnt, nTimeStamp] = pCuvid->read(gpuImg);
+
 	cv::Mat img;
 	if (nFrameCnt >= 0 && !gpuImg.empty()) {
 		gpuImg.download(img);
@@ -95,7 +96,8 @@ PyObject* CuvidRead(PyObject *self, PyObject *pCapsule) {
 		pNpImg = Py_None;
 		Py_XINCREF(pNpImg);
 	}
-	pRet = PyTuple_Pack(2, PyLong_FromLong(nFrameCnt), pNpImg);
+	pRet = PyTuple_Pack(3, PyLong_FromLong(nFrameCnt),
+			PyLong_FromLong(nTimeStamp), pNpImg);
 	Py_XDECREF(pNpImg);
 	return pRet;
 }

@@ -18,14 +18,13 @@ def size_fit_limit(size):
 	return size
 
 dec = cuvid.Cuvid(gpu_id)
-dec.set_jpeg_quality(75)
 
 ret = dec.open(rtsp_url)
 frame_size = (int(dec.get(3)), int(dec.get(4)))
 
 last_frame_id = 0
 while True:
-	frame_id, img1, jpeg = dec.read(True)
+	frame_id, timestamp, img1 = dec.read(True)
 	print('frame_id:', frame_id)
 	if frame_id < 0:
 		status = dec.status()
@@ -39,14 +38,7 @@ while True:
 		last_frame_id = frame_id
 		limited_size = size_fit_limit((frame_size[0], frame_size[1]))
 		img1 = cv2.resize(img1, limited_size)
-		jpeg = np.frombuffer(jpeg, dtype="uint8")
-		img2 = cv2.imdecode(jpeg, cv2.IMREAD_COLOR)
-		img2 = cv2.resize(img2, limited_size)
-		if img1 is None:
-			img1 = np.zeros((limited_size[1], limited_size[0], 3), np.uint8)
-			img2 = np.zeros((limited_size[1], limited_size[0], 3), np.uint8)
 		cv2.imshow("Downloaded from GPU", img1)
-		cv2.imshow("Decode From JPEG", img2)
 		key = cv2.waitKey(1) & 0xFF
 		if key == 27:
 			break

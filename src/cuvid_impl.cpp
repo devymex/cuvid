@@ -207,9 +207,10 @@ int32_t CuvidImpl::errcode() const {
 //   otherwise it is failure. Please note that if the returned value
 //   equal to zero or is the save as the previous, the `frameImg` remains
 //   unchanged and the caller should retry to get the next frame.
-int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
+std::pair<int64_t, int64_t> CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
 	CUDA_CHECK(cudaSetDevice(m_nGpuID));
-	int nCursor = -1;
+	int64_t nCursor = -1;
+	int64_t nTimeStamp = -1;
 	if (m_nErrCode != AVERROR_EXIT) {
 		if (m_bBlocking) {
 			m_ReadingSema.lock();
@@ -217,7 +218,7 @@ int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
 				if (nTimeoutUS > 0) {
 					auto status = m_Worker.wait_for(std::chrono::milliseconds(nTimeoutUS));
 					if (status != std::future_status::ready) {
-						return -1;
+						return std::make_pair(-1, -1);
 					}
 				} else {
 					m_Worker.wait();
@@ -225,12 +226,13 @@ int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
 				if (m_nErrCode != AVERROR_EOF) {
 					throw (int)m_nErrCode;
 				} else if (m_nLastCursor == m_nCursor) {
-					return -1;
+					return std::make_pair(-1, -1);
 				}
 			}
 
 			frameImg.swap(m_WorkingBuf);
 			nCursor = m_nCursor;
+			nTimeStamp = m_nTimeStamp;
 			if (m_nErrCode == AVERROR_EOF) {
 				m_nErrCode = AVERROR_EXIT;
 			}
@@ -239,7 +241,7 @@ int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
 			m_ReadingSema.lock();
 			std::lock_guard<std::mutex> locker(m_ReadingMutex);
 			if (m_nErrCode == AVERROR_EXIT) {
-				return -1;
+				return std::make_pair(-1, -1);
 			} else if (m_nErrCode != 0) {
 				m_Worker.wait();
 				if (m_nErrCode != AVERROR_EOF) {
@@ -256,7 +258,7 @@ int64_t CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
 		}
 	}
 	m_nLastCursor = nCursor;
-	return nCursor;
+	return std::make_pair(nCursor, nTimeStamp);
 }
 
 void CuvidImpl::__WorkerProc() {
@@ -268,12 +270,12 @@ void CuvidImpl::__WorkerProc() {
 			if (m_nNumDecoded > m_nCursor) {
 				if (m_bBlocking) {
 					m_WorkingSema.lock();
-					__DecodeFrame(m_WorkingBuf);
+					m_nTimeStamp = __DecodeFrame(m_WorkingBuf);
 					++m_nCursor;
 					m_ReadingSema.unlock();
 				} else {
 					std::lock_guard<std::mutex> locker(m_ReadingMutex);
-					__DecodeFrame(m_WorkingBuf);
+					m_nTimeStamp = __DecodeFrame(m_WorkingBuf);
 					++m_nCursor;
 					m_ReadingSema.unlock();
 				}
@@ -366,7 +368,7 @@ void CuvidImpl::__DemuxMPG4(AVPacket &packet, bool &bEoF) {
 		m_FilterPacket.get().pts * 1000 * m_dTimeBase);
 }
 
-void CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
+int64_t CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 
 	auto frameFormat = m_pDecoder->GetOutputFormat();
@@ -375,7 +377,8 @@ void CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 	size_t nImgBytes = imgSize.height * nPitch;
 	uint8_t iMatrix = m_pDecoder->GetVideoFormatInfo()
 			.video_signal_description.matrix_coefficients;
-	uint8_t *pSrc = m_pDecoder->GetFrame();
+	int64_t nTimeStamp;
+	uint8_t *pSrc = m_pDecoder->GetFrame(&nTimeStamp);
 	CHECK_NOTNULL(pSrc);
 
 	if (m_BgraBuf.size() != imgSize || m_BgraBuf.channels() != 4
@@ -406,4 +409,5 @@ void CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
 	}
 	::BGRA32ToBgr24(m_BgraBuf.data, gpuImg.data, imgSize.width, imgSize.height,
 			gpuImg.step);
+	return nTimeStamp;
 }

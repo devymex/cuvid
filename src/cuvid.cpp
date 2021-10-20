@@ -24,6 +24,6 @@ int32_t Cuvid::errcode() const {
 	return m_pImpl->errcode();
 }
 
-int64_t Cuvid::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
+std::pair<int64_t, int64_t> Cuvid::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
 	return m_pImpl->read(frameImg, nTimeoutUS);
 }
