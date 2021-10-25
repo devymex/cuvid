@@ -273,7 +273,9 @@ void CuvidImpl::__WorkerProc() {
 					m_ReadingSema.unlock();
 				}
 			} else {
-				CHECK(!bEof);
+				if (!bEof) {
+					throw int32_t(AVERROR_EOF);
+				}
 				int32_t nErrCode = 0;
 				for (packet.reset(); ; packet.reset()) {
 					nErrCode = ::av_read_frame(m_pAVCtx.get(), packet);
@@ -282,6 +284,15 @@ void CuvidImpl::__WorkerProc() {
 					}
 				}
 				if (nErrCode < 0 && nErrCode != AVERROR_EOF) {
+#ifdef VERBOSE_LOG
+					std::string strMsg(1024, '\0');
+					auto nErr = av_strerror(nErrCode, (char *)strMsg.data(), strMsg.size());
+					if (nErr < 0) {
+						strMsg = "UNKNOWN";
+					}
+					LOG(INFO) << "One frame lost, code=" << nErrCode
+								<< ", message=\"" << strMsg << "\"";
+#endif
 					throw nErrCode; // for catching the nErrCode
 				}
 				bEof = (nErrCode == AVERROR_EOF);
@@ -295,15 +306,6 @@ void CuvidImpl::__WorkerProc() {
 			}
 		}
 	} catch (int32_t nErrCode) {
-#ifdef VERBOSE_LOG
-		std::string strMsg(1024, '\0');
-		auto nErr = av_strerror(nErrCode, (char *)strMsg.data(), strMsg.size());
-		if (nErr < 0) {
-			strMsg = "UNKNOWN";
-		}
-		LOG(INFO) << "One frame lost, code=" << nErrCode
-					<< ", message=\"" << strMsg << "\"";
-#endif
 		m_nErrCode = nErrCode;
 	} catch (...) {
 		m_nErrCode = AVERROR(EINTR);
