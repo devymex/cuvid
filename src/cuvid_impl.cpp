@@ -175,9 +175,7 @@ void CuvidImpl::close() {
 	m_WorkingSema.unlock();
 	if (m_Worker.valid()) {
 		auto waitRes = m_Worker.wait_for(std::chrono::seconds(10));
-		if (waitRes == std::future_status::timeout) {
-			throw AVERROR_BUG;
-		}
+		CHECK_NE((int)waitRes, (int)std::future_status::timeout);
 	}
 	m_nErrCode = AVERROR_EXIT;
 }
@@ -195,7 +193,7 @@ double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
 	} else if (prop == cv::CAP_PROP_FRAME_HEIGHT) {
 		return pStream->codecpar->height;
 	}
-	LOG(FATAL) << "Unsupported prop!";
+	LOG(FATAL) << "Unsupported property: " << (int)prop;
 	return 0.f;
 }
 
@@ -223,11 +221,8 @@ std::pair<int64_t, int64_t> CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t
 				} else {
 					m_Worker.wait();
 				}
-				if (m_nErrCode != AVERROR_EOF) {
-					throw (int)m_nErrCode;
-				} else if (m_nLastCursor == m_nCursor) {
-					return std::make_pair(-1, -1);
-				}
+				CHECK_EQ(m_nErrCode, AVERROR_EOF);
+				return std::make_pair(-1, -1);
 			}
 
 			frameImg.swap(m_WorkingBuf);
@@ -244,9 +239,7 @@ std::pair<int64_t, int64_t> CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t
 				return std::make_pair(-1, -1);
 			} else if (m_nErrCode != 0) {
 				m_Worker.wait();
-				if (m_nErrCode != AVERROR_EOF) {
-					throw (int)m_nErrCode;
-				}
+				CHECK_EQ(m_nErrCode, AVERROR_EOF);
 			}
 			if (!m_WorkingBuf.empty()) {
 				frameImg.swap(m_WorkingBuf);
@@ -280,9 +273,7 @@ void CuvidImpl::__WorkerProc() {
 					m_ReadingSema.unlock();
 				}
 			} else {
-				if (bEof) {
-					throw int32_t(AVERROR_EOF);
-				}
+				CHECK(!bEof);
 				int32_t nErrCode = 0;
 				for (packet.reset(); ; packet.reset()) {
 					nErrCode = ::av_read_frame(m_pAVCtx.get(), packet);
@@ -291,16 +282,7 @@ void CuvidImpl::__WorkerProc() {
 					}
 				}
 				if (nErrCode < 0 && nErrCode != AVERROR_EOF) {
-#ifdef VERBOSE_LOG
-					std::string strMsg(1024, '\0');
-					auto nErr = av_strerror(nErrCode, (char *)strMsg.data(), strMsg.size());
-					if (nErr < 0) {
-						strMsg = "UNKNOWN";
-					}
-					LOG(WARNING) << "One frame lost, code=" << nErrCode
-								<< ", message=\"" << strMsg << "\"";
-#endif
-					throw nErrCode;
+					throw nErrCode; // for catching the nErrCode
 				}
 				bEof = (nErrCode == AVERROR_EOF);
 				if (m_CurCodecId == cudaVideoCodec_H264 ||
@@ -313,6 +295,15 @@ void CuvidImpl::__WorkerProc() {
 			}
 		}
 	} catch (int32_t nErrCode) {
+#ifdef VERBOSE_LOG
+		std::string strMsg(1024, '\0');
+		auto nErr = av_strerror(nErrCode, (char *)strMsg.data(), strMsg.size());
+		if (nErr < 0) {
+			strMsg = "UNKNOWN";
+		}
+		LOG(INFO) << "One frame lost, code=" << nErrCode
+					<< ", message=\"" << strMsg << "\"";
+#endif
 		m_nErrCode = nErrCode;
 	} catch (...) {
 		m_nErrCode = AVERROR(EINTR);
@@ -328,9 +319,7 @@ void CuvidImpl::__DemuxH26X(AVPacket &packet, bool &bEoF) {
 	} else {
 		nErrCode = av_bsf_send_packet(m_pAVBsfc.get(), &packet);
 	}
-	if (nErrCode != 0) {
-		throw nErrCode;
-	}
+	CHECK_EQ(nErrCode, 0);
 	for (bEoF = false; !bEoF;) {
 		m_FilterPacket.reset();
 		nErrCode = av_bsf_receive_packet(m_pAVBsfc.get(), m_FilterPacket);
@@ -339,7 +328,7 @@ void CuvidImpl::__DemuxH26X(AVPacket &packet, bool &bEoF) {
 		} else if (nErrCode == AVERROR_EOF) {
 			bEoF = CUVID_PKT_ENDOFSTREAM;
 			nErrCode = 0;
-		} else if (nErrCode < 0) {
+		} else if (nErrCode != 0) {
 			throw nErrCode;
 		}
 		m_nNumDecoded += (uint32_t)m_pDecoder->Decode(

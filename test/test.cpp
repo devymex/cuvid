@@ -60,18 +60,12 @@ int main(int nArgCnt, char *ppArgs[]) {
 		cv::cuda::GpuMat gpuImg;
 		cv::Mat img1, img2;
 		for (int64_t nLastFrame = 0; ; ) {
-			int64_t nFrmId;
-			try {
-				auto [nFrmId, nTimeStamp] = cuvid.read(gpuImg);
-				nLastFrame = nFrmId;
-				if (gpuImg.empty()) {
-					throw "Empty frame!";
-				}
-			} catch(...) {
-				LOG(INFO) << "exception! " << nFrmId;
-				break;
+			auto [nFrameId, nTimeStamp] = cuvid.read(gpuImg);
+			nLastFrame = nFrameId;
+			if (gpuImg.empty()) {
+				throw "Empty frame!";
 			}
-			if (nFrmId < 0) {
+			if (nFrameId < 0) {
 				break;
 			}
 		}
