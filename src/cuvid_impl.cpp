@@ -273,7 +273,7 @@ void CuvidImpl::__WorkerProc() {
 					m_ReadingSema.unlock();
 				}
 			} else {
-				if (!bEof) {
+				if (bEof) {
 					throw int32_t(AVERROR_EOF);
 				}
 				int32_t nErrCode = 0;
