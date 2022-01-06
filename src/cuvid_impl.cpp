@@ -184,8 +184,7 @@ double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
 	CHECK_NOTNULL(m_pAVCtx);
 	AVStream *pStream = m_pAVCtx->streams[m_nStreamId];
 	if (prop == cv::CAP_PROP_FPS) {
-		auto fr = pStream->avg_frame_rate;
-		return (double)fr.num / (double)fr.den;
+		return av_q2d(pStream->avg_frame_rate);
 	} else if (prop == cv::CAP_PROP_FRAME_COUNT) {
 		return pStream->nb_frames;
 	} else if (prop == cv::CAP_PROP_FRAME_WIDTH) {
@@ -265,6 +264,7 @@ void CuvidImpl::__WorkerProc() {
 					m_WorkingSema.lock();
 					m_nTimeStamp = __DecodeFrame(m_WorkingBuf);
 					++m_nCursor;
+					cudaDeviceSynchronize();
 					m_ReadingSema.unlock();
 				} else {
 					std::lock_guard<std::mutex> locker(m_ReadingMutex);

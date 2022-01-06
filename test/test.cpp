@@ -39,7 +39,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 		filenames = EnumerateFiles(strSource, ".*\\.mp4");
 	} else if (stdfs::is_regular_file(strSource)) {
 		if (std::regex_match(strSource, std::regex(".*\\.txt"))) {
-			std::ifstream inFile("../../debug/time_url_id.txt");
+			std::ifstream inFile(strSource);
 			CHECK(inFile.is_open());
 			for (std::string strLine; std::getline(inFile, strLine); ) {
 				filenames.emplace_back(std::move(strLine));
@@ -51,10 +51,11 @@ int main(int nArgCnt, char *ppArgs[]) {
 
 	Cuvid cuvid(nDevID);
 
-	for (auto &strFilename: filenames) {
+	for (uint32_t i = 0; i < filenames.size(); ++i) {
 		cuvid.close();
-		LOG(INFO) << strFilename;
-		CHECK(cuvid.open(strFilename));
+		CHECK(cuvid.open(filenames[i]));
+		auto dFPS = cuvid.get(cv::CAP_PROP_FPS);
+		auto dFrmCnt = cuvid.get(cv::CAP_PROP_FRAME_COUNT);
 		cv::Size frameSize(cuvid.get(cv::CAP_PROP_FRAME_WIDTH),
 						cuvid.get(cv::CAP_PROP_FRAME_HEIGHT));
 		cv::cuda::GpuMat gpuImg;
