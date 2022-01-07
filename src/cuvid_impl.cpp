@@ -264,6 +264,7 @@ void CuvidImpl::__WorkerProc() {
 					m_WorkingSema.lock();
 					m_nTimeStamp = __DecodeFrame(m_WorkingBuf);
 					++m_nCursor;
+					// Synchronize for preventing duplicated frames are generated
 					cudaDeviceSynchronize();
 					m_ReadingSema.unlock();
 				} else {
