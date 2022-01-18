@@ -357,7 +357,7 @@ void CuvidImpl::__DemuxMPG4(AVPacket &packet, bool &bEoF) {
 
 	m_nNumDecoded += (uint32_t)m_pDecoder->Decode(m_Mp4Hdr.data(),
 		m_Mp4Hdr.size(), (int)bEoF,
-		m_FilterPacket.get().pts * 1000 * m_dTimeBase);
+		packet.pts * 1000 * m_dTimeBase);
 }
 
 int64_t CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
