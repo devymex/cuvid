@@ -4,9 +4,8 @@
 			"name": "Linux",
 			"includePath": [
 				"${workspaceFolder}/src",
-				"/home/devymex/.local/lib/python3.6/site-packages",
-				"/usr/local/lib/python3.6/dist-packages/numpy/core/include",
-				"/usr/include/python3.6m",
+				"/root/anaconda3/lib/python3.8/site-packages/numpy/core/include",
+				"/root/anaconda3/include/python3.8",
 				"/usr/local/cuda/targets/x86_64-linux/include",
 				"/usr/local/include/opencv4",
 				"/usr/local/include",
@@ -18,8 +17,7 @@
 			"compilerPath": "/usr/bin/g++-7",
 			"cStandard": "c11",
 			"cppStandard": "c++17",
-			"intelliSenseMode": "clang-x64",
-			"compileCommands": "${workspaceFolder}/build/compile_commands.json"
+			"intelliSenseMode": "clang-x64"
 		}
 	],
 	"version": 4

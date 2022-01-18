@@ -1,48 +1,16 @@
 #!/usr/bin/python3
-import sys, cv2
-import cuvid, numpy as np
-from time import sleep
+import sys, cuvid
 
-assert(len(sys.argv) >= 2)
-rtsp_url = sys.argv[1]
 gpu_id = 0
-if len(sys.argv) > 2:
-	gpu_id = int(sys.argv[2])
-
-max_size = 480
-def size_fit_limit(size):
-	if size[1] >= size[0] and size[1] > max_size:
-		return (int((size[0] * max_size) / size[1]), max_size)
-	if size[0] >= size[1] and size[0] > max_size:
-		return (max_size, int((size[1] * max_size) / size[0]))
-	return size
+rtsp_url = sys.argv[1]
 
 dec = cuvid.Cuvid(gpu_id)
-
 ret = dec.open(rtsp_url)
-frame_size = (int(dec.get(3)), int(dec.get(4)))
 
-last_frame_id = 0
 while True:
-	frame_id, timestamp, img1 = dec.read(True)
-	print('frame_id:', frame_id)
-	if frame_id < 0:
-		status = dec.status()
-		dec.stop()
-		if status == 0:
-			break
-		last_frame_id = 0
-		sleep(0.1)
-		ret = dec.open(rtsp_url)
-	elif frame_id > last_frame_id:
-		last_frame_id = frame_id
-		limited_size = size_fit_limit((frame_size[0], frame_size[1]))
-		img1 = cv2.resize(img1, limited_size)
-		cv2.imshow("Downloaded from GPU", img1)
-		key = cv2.waitKey(1) & 0xFF
-		if key == 27:
-			break
-	else:
-		sleep(0.001)
+    frame_id, timestamp, img = dec.read()
+    if frame_id < 0:
+        break
+    print(f'[{frame_id}] time: {timestamp}, size: {img.shape[1]}x{img.shape[0]}')
 
 dec.close()

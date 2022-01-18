@@ -69,6 +69,8 @@ int main(int nArgCnt, char *ppArgs[]) {
 			if (gpuImg.empty()) {
 				throw "Empty frame!";
 			}
+			LOG(INFO) << "[" << nFrameId << "] time: " << nTimeStamp
+				<< ", size: (" << gpuImg.cols << "x" << gpuImg.rows << ")";
 		}
 	}
 	return 0;
