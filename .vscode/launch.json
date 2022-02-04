@@ -11,7 +11,7 @@
 			"program": "${workspaceFolder}/build/cuvid_test",
 			"args": [
 				//"\"rtsp://admin:Admin123@192.168.1.64:554/h264/ch1/main/av_stream\""
-				"/data/bzj/test_videos/test_3.mp4"
+				"/data/bzj/nasa_videos/211021/211021_000001_0.mp4"
 			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
@@ -35,11 +35,10 @@
 			"name": "test.py",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "/usr/bin/python3",
+			"program": "/home/wangyumeng02/anaconda3/bin/python3",
 			"args": [
 				"${workspaceFolder}/test/test.py",
-				"\"rtsp://admin:Admin123@192.168.1.64:554/h264/ch1/main/av_stream\"",
-				"0"],
+				"/data/bzj/nasa_videos/211021/211021_009092_0.mp4"],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],

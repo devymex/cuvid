@@ -1,7 +1,7 @@
 {
     "cmake.configureArgs": [
         "-DCMAKE_VERBOSE_MAKEFILE=ON",
-        "-DCMAKE_INSTALL_PREFIX=/usr/local"
+        "-DCMAKE_INSTALL_PREFIX=build/install"
     ],
     "cmake.configureEnvironment": {
         "PATH": "/root/anaconda3/bin:/root/anaconda3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/snap/bin"

@@ -58,11 +58,8 @@ int main(int nArgCnt, char *ppArgs[]) {
 		auto dFrmCnt = cuvid.get(cv::CAP_PROP_FRAME_COUNT);
 		cv::Size frameSize(cuvid.get(cv::CAP_PROP_FRAME_WIDTH),
 						cuvid.get(cv::CAP_PROP_FRAME_HEIGHT));
-		cv::cuda::GpuMat gpuImg;
-		cv::Mat img;
-		for (int64_t nLastFrame = 0; ; ) {
+		for (cv::cuda::GpuMat gpuImg; ; ) {
 			auto [nFrameId, nTimeStamp] = cuvid.read(gpuImg);
-			nLastFrame = nFrameId;
 			if (nFrameId < 0) {
 				break;
 			}

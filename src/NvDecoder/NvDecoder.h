@@ -296,4 +296,7 @@ private:
     bool m_bReconfigExternal = false;
     bool m_bReconfigExtPPChange = false;
     StopWatch m_stDecode_time;
+
+public:
+    bool m_bStopOnError = true;
 };
