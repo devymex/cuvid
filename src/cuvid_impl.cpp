@@ -223,7 +223,7 @@ std::pair<int64_t, int64_t> CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t
 				if (m_nErrCode != AVERROR_EOF) {
 					char szErrMsg[1024] = { 0 };
 					av_strerror(m_nErrCode, szErrMsg, sizeof(szErrMsg));
-					LOG(INFO) << szErrMsg;
+					CHECK_EQ(m_nErrCode, AVERROR_EOF) << "Decoder Error: " << szErrMsg;
 				}
 				return std::make_pair(-1, -1);
 			}
