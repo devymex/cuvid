@@ -174,7 +174,7 @@ void CuvidImpl::close() {
 	m_nErrCode = AVERROR_EXIT;
 	m_WorkingSema.unlock();
 	if (m_Worker.valid()) {
-		auto waitRes = m_Worker.wait_for(std::chrono::seconds(10));
+		auto waitRes = m_Worker.wait_for(std::chrono::seconds(60));
 		CHECK_NE((int)waitRes, (int)std::future_status::timeout);
 	}
 	m_nErrCode = AVERROR_EXIT;
