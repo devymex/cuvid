@@ -29,7 +29,7 @@ FIND_PACKAGE(PythonInterp 3 REQUIRED)
 EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "from distutils import sysconfig; print(sysconfig.get_config_vars()['LIBDIR'], end='')"
                 OUTPUT_VARIABLE PYTHON_LIBRARY_DIR)
 FIND_PACKAGE(PythonLibs 3 REQUIRED)
-EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import site; print(site.getusersitepackages(), end='')"
+EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy, os; print(os.path.dirname(numpy.__path__[0]), end='')"
                 OUTPUT_VARIABLE Python3_USER_SITE_DIR)
 EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.get_include(), end='')"
                 OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIRS)
