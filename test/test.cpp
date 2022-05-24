@@ -16,14 +16,11 @@ int main(int nArgCnt, char *ppArgs[]) {
 
 	Cuvid cuvid(nDevID);
 	CHECK(cuvid.open(ppArgs[1]));
-	auto dFrmCnt = cuvid.get(7);
 	std::cout << "Num frames: " << cuvid.get(7)
 			  << ", Resolution: " << cuvid.get(3) << "x" << cuvid.get(4)
 			  << ", FPS: " << cuvid.get(5) << std::endl;
-	GpuBuffer frameBuf;
-	for (int64_t nLastFrame = 0; ; ) {
+	for (GpuBuffer frameBuf; ; ) {
 		auto [nFrameId, nTimeStamp] = cuvid.read(frameBuf);
-		nLastFrame = nFrameId;
 		if (nFrameId < 0) {
 			break;
 		}

@@ -340,7 +340,7 @@ void CuvidImpl::__DemuxH26X(AVPacket &packet, bool &bEoF) {
 		} else if (nErrCode != 0) {
 			throw nErrCode;
 		}
-		m_nNumDecoded += (uint32_t)m_pDecoder->Decode(
+		m_nNumDecoded += m_pDecoder->Decode(
 			m_FilterPacket->data, m_FilterPacket->size, (int)bEoF,
 			m_FilterPacket->pts * 1000 * m_dTimeBase);
 	}
@@ -367,20 +367,18 @@ void CuvidImpl::__DemuxMPG4(AVPacket &packet, bool &bEoF) {
 }
 
 int64_t CuvidImpl::__DecodeFrame(GpuBuffer &gpuImg) {
-	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
-
 	auto frameFormat = m_pDecoder->GetOutputFormat();
 	auto nWidth = m_pDecoder->GetWidth();
 	auto nHeight = m_pDecoder->GetHeight();
-	size_t nPitch = nWidth * 4;
-	size_t nBgraBytes = nHeight * nPitch;
+	auto nPitch = nWidth * 4;
+	auto nBgraBytes = nHeight * nPitch;
 	uint8_t iMatrix = m_pDecoder->GetVideoFormatInfo()
 			.video_signal_description.matrix_coefficients;
 	int64_t nTimeStamp;
 	uint8_t *pSrc = m_pDecoder->GetFrame(&nTimeStamp);
 	CHECK_NOTNULL(pSrc);
 
-	if (m_BgraBuf.size() != nBgraBytes) {
+	if ((int64_t)m_BgraBuf.size() != nBgraBytes) {
 		m_BgraBuf.resize(nBgraBytes);
 	}
 	auto pRGBATmp = (uint8_t*)m_BgraBuf.get();
@@ -401,7 +399,7 @@ int64_t CuvidImpl::__DecodeFrame(GpuBuffer &gpuImg) {
 					nPitch, nWidth, nHeight, iMatrix);
 		}
 	}
-	if (gpuImg.size() != nWidth * nHeight * 3) {
+	if ((int64_t)gpuImg.size() != nWidth * nHeight * 3) {
 		gpuImg.resize(nWidth * nHeight * 3);
 	}
 	::BGRA32ToBgr24((uint8_t*)m_BgraBuf.get(), (uint8_t*)gpuImg.get(),

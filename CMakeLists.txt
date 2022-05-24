@@ -1,12 +1,16 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
 PROJECT(cuvid LANGUAGES CXX)
 
-# Settings
-# --------
-SET(CUDA_ARCHITECTURES "86")
-SET(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
-SET(CUDA_nvcuvid_LIBRARY "/usr/lib/x86_64-linux-gnu/libnvcuvid.so")
+# User Options
+# ------------
+OPTION(WITH_PYTHON3 "Build with Python3 interface" ON)
+OPTION(BUILD_TEST "Build test app" ON)
+SET(CUDA_ARCHITECTURES "86" CACHE STRING "Target architecture")
+SET(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" CACHE STRING "CUDA compiler")
+SET(CUDA_nvcuvid_LIBRARY "/usr/lib/x86_64-linux-gnu/libnvcuvid.so" CACHE STRING "CUDA nvcuvid library")
 
+# Basic Settings
+# --------------
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_EXTENSIONS OFF)
@@ -16,11 +20,6 @@ SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 SET(CMAKE_SKIP_RPATH ON)
 ENABLE_LANGUAGE(CUDA)
 
-# User Options
-# ------------
-OPTION(WITH_PYTHON3 "Build with Python3 interface" ON)
-OPTION(BUILD_TEST "Build test app" ON)
-
 # Dependencies
 # ------------
 FIND_PACKAGE(CUDA REQUIRED)
@@ -29,6 +28,7 @@ FIND_PACKAGE(OpenMP REQUIRED)
 # Compiler Options
 #-----------------
 SET(COMPILE_DEFINITIONS "-DCUDA_VERSION_MINOR=${CUDA_VERSION_MINOR}")
+ADD_COMPILE_OPTIONS(-Wall)
 STRING(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 IF(CMAKE_BUILD_TYPE STREQUAL "")
     SET(CMAKE_BUILD_TYPE "RELEASE")
@@ -70,12 +70,10 @@ INSTALL(FILES "${CMAKE_SOURCE_DIR}/include/cuvid.hpp"
 # -----------------------
 IF (WITH_PYTHON3)
     FIND_PACKAGE(PythonInterp 3 REQUIRED)
-    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "from distutils import sysconfig; print(sysconfig.get_config_vars()['LIBDIR'], end='')"
-                    OUTPUT_VARIABLE PYTHON_LIBRARY_DIR)
     FIND_PACKAGE(PythonLibs 3 REQUIRED)
-    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import os, numpy; print(os.path.dirname(numpy.__path__[0]), end='')"
+    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import os,numpy;print(os.path.dirname(numpy.__path__[0]),end='')"
                     OUTPUT_VARIABLE Python3_USER_SITE_DIR)
-    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.get_include(), end='')"
+    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy;print(numpy.get_include(),end='')"
                     OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIRS)
     FILE(GLOB_RECURSE LIB_SRC_FILES "${CMAKE_SOURCE_DIR}/python/*.cpp")
     ADD_LIBRARY(pycuvid SHARED ${LIB_SRC_FILES})

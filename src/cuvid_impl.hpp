@@ -115,7 +115,7 @@ private:
 	int64_t m_nLastCursor;
 	std::atomic<int64_t> m_nCursor;
 	std::atomic<int64_t> m_nTimeStamp;
-	std::atomic<uint64_t> m_nNumDecoded;
+	std::atomic<int64_t> m_nNumDecoded;
 	std::atomic<int32_t> m_nErrCode;
 	std::mutex m_ReadingMutex;
 	semaphore m_WorkingSema;

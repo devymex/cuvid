@@ -189,16 +189,16 @@ public:
         if (_stat64(szFileName, &st) != 0) {
             return;
         }
-        
+
         nSize = st.st_size;
         while (nSize) {
             try {
                 pBuf = new uint8_t[(size_t)nSize];
-                if (nSize != st.st_size) {
-                    LOG(WARNING) << "File is too large - only " << std::setprecision(4) << 100.0 * nSize / st.st_size << "% is loaded"; 
+                if ((int64_t)nSize != st.st_size) {
+                    LOG(WARNING) << "File is too large - only " << std::setprecision(4) << 100.0 * nSize / st.st_size << "% is loaded";
                 }
                 break;
-            } catch(std::bad_alloc) {
+            } catch(std::bad_alloc&) {
                 if (!bPartial) {
                     LOG(ERROR) << "Failed to allocate memory in BufferedReader";
                     return;
@@ -217,7 +217,7 @@ public:
         std::streamsize nRead = fpIn.read(reinterpret_cast<char*>(pBuf), nSize).gcount();
         fpIn.close();
 
-        assert(nRead == nSize);
+        assert(nRead == (int64_t)nSize);
     }
     ~BufferedFileReader() {
         if (pBuf) {
@@ -275,8 +275,8 @@ public:
         if (nPitch == 0) {
             nPitch = nWidth;
         }
-        T *puv = pFrame + nPitch * nHeight, 
-            *pu = puv, 
+        T *puv = pFrame + nPitch * nHeight,
+            *pu = puv,
             *pv = puv + nPitch * nHeight / 4;
         for (int y = 0; y < nHeight / 2; y++) {
             for (int x = 0; x < nWidth / 2; x++) {
@@ -413,7 +413,7 @@ inline void CheckInputFile(const char *szInFilePath) {
 }
 
 inline void ValidateResolution(int nWidth, int nHeight) {
-    
+
     if (nWidth <= 0 || nHeight <= 0) {
         std::ostringstream err;
         err << "Please specify positive non zero resolution as -s WxH. Current resolution is " << nWidth << "x" << nHeight << std::endl;

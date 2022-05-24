@@ -27,7 +27,7 @@ public:
 	std::pair<int64_t, int64_t> read(GpuBuffer &frameImg, uint32_t nTimeoutUS = 0);
 	std::pair<int64_t, int64_t> read(uint32_t nTimeoutUS = 0);
 
-	constexpr const GpuBuffer& GetDefaultBuffer() const {
+	constexpr const GpuBuffer& get_default_buffer() const {
 		return m_DefBuf;
 	}
 

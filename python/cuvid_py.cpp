@@ -44,7 +44,6 @@ PyObject* CuvidOpen(PyObject *self, PyObject *pArgs) {
 	CHECK_GE(nReadMode, 0);
 	CHECK_LE(nReadMode, 2);
 
-	PyObject *pyResult = Py_False;
 	if (pCuvid->open(pURL, Cuvid::READ_MODE(nReadMode))) {
 		Py_RETURN_TRUE;
 	}
@@ -80,7 +79,7 @@ PyObject* CuvidReadAsNumpy(PyObject *self, PyObject *pArgs) {
 	CHECK_NOTNULL(pCuvid);
 
 	auto [nFrameCnt, nTimeStamp] = pCuvid->read();
-	auto &gpuBuf = pCuvid->GetDefaultBuffer();
+	auto &gpuBuf = pCuvid->get_default_buffer();
 	std::vector<uint8_t> cpuBuf;
 	gpuBuf.to_vector(cpuBuf);
 
@@ -113,7 +112,7 @@ PyObject* CuvidReadToBuffer(PyObject *self, PyObject *pArgs) {
 	unsigned long nPtr64 = nBufPtr;
 	GpuBuffer gpuBuf((void*)nPtr64, nBufSize);
 	auto [nFrameCnt, nTimeStamp] = pCuvid->read();
-	pCuvid->GetDefaultBuffer().copy_to(gpuBuf);
+	pCuvid->get_default_buffer().copy_to(gpuBuf);
 	auto pRet = PyTuple_Pack(2, PyLong_FromLong(nFrameCnt),
 			PyLong_FromLong(nTimeStamp));
 	return pRet;
