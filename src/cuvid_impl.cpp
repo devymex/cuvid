@@ -16,7 +16,9 @@ extern "C" {
 
 struct AVINIT {
 	AVINIT() {
-		::av_register_all();
+#if LIBAVCODEC_VERSION_MAJOR < 58
+		::avcodec_register_all();
+#endif
 		CHECK_GE(::avformat_network_init(), 0);
 	}
 	~AVINIT() {
@@ -40,16 +42,16 @@ inline cudaVideoCodec FFmpeg2NvCodecId(AVCodecID id) {
 }
 
 void DestroyCudaContext(CUcontext *pCuCtx) {
-	CUDA_DRVAPI_CALL(cuCtxDestroy(*pCuCtx));
+	CUDA_DRVAPI_CALL(::cuCtxDestroy(*pCuCtx));
 	delete pCuCtx;
 }
 
 std::shared_ptr<CUcontext> MakeCudaContext(int nGpuID) {
 	CUdevice cuDev;
-	CUDA_DRVAPI_CALL(cuDeviceGet(&cuDev, nGpuID));
+	CUDA_DRVAPI_CALL(::cuDeviceGet(&cuDev, nGpuID));
 	CUcontext *pCuCtx = new CUcontext;
-	CUDA_DRVAPI_CALL(cuCtxCreate(pCuCtx, 0, cuDev));
-	return std::shared_ptr<CUcontext>(pCuCtx, &DestroyCudaContext);
+	CUDA_DRVAPI_CALL(::cuCtxCreate(pCuCtx, 0, cuDev));
+	return std::shared_ptr<CUcontext>(pCuCtx, &::DestroyCudaContext);
 }
 
 void DestroyAVContext(AVFormatContext *pAVCtx) {
@@ -94,7 +96,7 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	if (nErrCode != 0) {
 #ifdef VERBOSE_LOG
 		char sz[1024] = {0};
-		av_make_error_string(sz, 1024, nErrCode);
+		::av_make_error_string(sz, 1024, nErrCode);
 		LOG(WARNING) << "Can't open stream: \"" << strURL
 					 << "\", err_code=" << nErrCode << ", msg=" << sz;
 #endif
@@ -117,9 +119,9 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	const AVBitStreamFilter *pBsf = nullptr;
 	m_CurCodecId = ::FFmpeg2NvCodecId(pAVDecoder->id);
 	if (m_CurCodecId == cudaVideoCodec_H264) {
-		pBsf = av_bsf_get_by_name("h264_mp4toannexb");
+		pBsf = ::av_bsf_get_by_name("h264_mp4toannexb");
 	} else if (m_CurCodecId == cudaVideoCodec_HEVC) {
-		pBsf = av_bsf_get_by_name("hevc_mp4toannexb");
+		pBsf = ::av_bsf_get_by_name("hevc_mp4toannexb");
 	} else {
 		CHECK(m_CurCodecId == cudaVideoCodec_H264 ||
 			  m_CurCodecId == cudaVideoCodec_HEVC ||
@@ -127,24 +129,24 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	}
 	if (pBsf != nullptr) {
 		AVBSFContext *pBsfc = nullptr;
-		CHECK_EQ(av_bsf_alloc(pBsf, &pBsfc), 0);
+		CHECK_EQ(::av_bsf_alloc(pBsf, &pBsfc), 0);
 		m_pAVBsfc.reset(pBsfc, &::DestroyAVBsfc);
-		avcodec_parameters_copy(pBsfc->par_in, pStream->codecpar);
-		CHECK_EQ(av_bsf_init(pBsfc), 0);
+		::avcodec_parameters_copy(pBsfc->par_in, pStream->codecpar);
+		CHECK_EQ(::av_bsf_init(pBsfc), 0);
 	}
 
 	// Initializing Internal Variables
 	// -------------------------------
-	m_dTimeBase = av_q2d(pStream->time_base);
+	m_dTimeBase = ::av_q2d(pStream->time_base);
 	if (readMode == READ_MODE::AUTO) { // AUTO: block for file, async for rtsp
 		m_bBlocking = (strURL.find("rtsp://", 0) != 0);
 	} else {
 		m_bBlocking = (readMode == READ_MODE::BLOCK);
 		CHECK(readMode == READ_MODE::ASYNC || readMode == READ_MODE::BLOCK);
 	}
-	cv::Size frameSize(pStream->codecpar->width, pStream->codecpar->height);
 #ifdef VERBOSE_LOG
-	LOG(INFO) << "Decoder: " << m_CurCodecId << ", resolution: " << frameSize
+	LOG(INFO) << "Decoder: " << m_CurCodecId << ", resolution: "
+			  << pStream->codecpar->width << "x" << pStream->codecpar->height
 			  << ", Blocking: " << m_bBlocking;
 #endif
 
@@ -180,19 +182,23 @@ void CuvidImpl::close() {
 	m_nErrCode = AVERROR_EXIT;
 }
 
-double CuvidImpl::get(cv::VideoCaptureProperties prop) const {
+double CuvidImpl::get(int nProp) const {
 	CHECK_NOTNULL(m_pAVCtx);
 	AVStream *pStream = m_pAVCtx->streams[m_nStreamId];
-	if (prop == cv::CAP_PROP_FPS) {
-		return av_q2d(pStream->avg_frame_rate);
-	} else if (prop == cv::CAP_PROP_FRAME_COUNT) {
+	if (nProp == 5) { // cv::CAP_PROP_FPS
+		return ::av_q2d(pStream->avg_frame_rate);
+	} else if (nProp == 7) { // cv::CAP_PROP_FRAME_COUNT
 		return pStream->nb_frames;
-	} else if (prop == cv::CAP_PROP_FRAME_WIDTH) {
+	} else if (nProp == 3) { // cv::CAP_PROP_FRAME_WIDTH
 		return pStream->codecpar->width;
-	} else if (prop == cv::CAP_PROP_FRAME_HEIGHT) {
+	} else if (nProp == 4) { // cv::CAP_PROP_FRAME_HEIGHT)
 		return pStream->codecpar->height;
+	} else if (nProp == 6) { // Number of channels
+		return 3;
+	} else if (nProp == 8) {
+		return pStream->codecpar->width * pStream->codecpar->height * 3;
 	}
-	LOG(FATAL) << "Unsupported property: " << (int)prop;
+	LOG(FATAL) << "Unsupported property: " << (int)nProp;
 	return 0.f;
 }
 
@@ -204,8 +210,8 @@ int32_t CuvidImpl::errcode() const {
 //   otherwise it is failure. Please note that if the returned value
 //   equal to zero or is the save as the previous, the `frameImg` remains
 //   unchanged and the caller should retry to get the next frame.
-std::pair<int64_t, int64_t> CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS) {
-	CUDA_CHECK(cudaSetDevice(m_nGpuID));
+std::pair<int64_t, int64_t> CuvidImpl::read(GpuBuffer &frameImg, uint32_t nTimeoutUS) {
+	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 	int64_t nCursor = -1;
 	int64_t nTimeStamp = -1;
 	if (m_nErrCode != AVERROR_EXIT) {
@@ -254,8 +260,8 @@ std::pair<int64_t, int64_t> CuvidImpl::read(cv::cuda::GpuMat &frameImg, uint32_t
 }
 
 void CuvidImpl::__WorkerProc() {
-	CUDA_CHECK(cudaSetDevice(m_nGpuID));
-	PACKET packet;
+	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
+	AVPACKET packet;
 	try {
 		bool bEof = false;
 		for (; m_nErrCode == 0; ) {
@@ -265,7 +271,7 @@ void CuvidImpl::__WorkerProc() {
 					m_nTimeStamp = __DecodeFrame(m_WorkingBuf);
 					++m_nCursor;
 					// Synchronize for preventing duplicated frames are generated
-					cudaDeviceSynchronize();
+					::cudaDeviceSynchronize();
 					m_ReadingSema.unlock();
 				} else {
 					std::lock_guard<std::mutex> locker(m_ReadingMutex);
@@ -279,15 +285,15 @@ void CuvidImpl::__WorkerProc() {
 				}
 				int32_t nErrCode = 0;
 				for (packet.reset(); ; packet.reset()) {
-					nErrCode = ::av_read_frame(m_pAVCtx.get(), packet);
-					if (nErrCode < 0 || packet.get().stream_index == m_nStreamId) {
+					nErrCode = ::av_read_frame(m_pAVCtx.get(), packet.get());
+					if (nErrCode < 0 || packet->stream_index == m_nStreamId) {
 						break;
 					}
 				}
 				if (nErrCode < 0 && nErrCode != AVERROR_EOF) {
 #ifdef VERBOSE_LOG
 					std::string strMsg(1024, '\0');
-					auto nErr = av_strerror(nErrCode, (char *)strMsg.data(), strMsg.size());
+					auto nErr = ::av_strerror(nErrCode, (char *)strMsg.data(), strMsg.size());
 					if (nErr < 0) {
 						strMsg = "UNKNOWN";
 					}
@@ -299,9 +305,9 @@ void CuvidImpl::__WorkerProc() {
 				bEof = (nErrCode == AVERROR_EOF);
 				if (m_CurCodecId == cudaVideoCodec_H264 ||
 					m_CurCodecId == cudaVideoCodec_HEVC) {
-					__DemuxH26X(packet.get(), bEof);
+					__DemuxH26X(*packet, bEof);
 				} else {
-					__DemuxMPG4(packet.get(), bEof);
+					__DemuxMPG4(*packet, bEof);
 				}
 				packet.reset();
 			}
@@ -318,14 +324,14 @@ void CuvidImpl::__DemuxH26X(AVPacket &packet, bool &bEoF) {
 	int32_t nErrCode = 0;
 	CHECK_NOTNULL(m_pAVBsfc);
 	if (bEoF) {
-		nErrCode = av_bsf_send_packet(m_pAVBsfc.get(), nullptr);
+		nErrCode = ::av_bsf_send_packet(m_pAVBsfc.get(), nullptr);
 	} else {
-		nErrCode = av_bsf_send_packet(m_pAVBsfc.get(), &packet);
+		nErrCode = ::av_bsf_send_packet(m_pAVBsfc.get(), &packet);
 	}
 	CHECK_EQ(nErrCode, 0);
 	for (bEoF = false; !bEoF;) {
 		m_FilterPacket.reset();
-		nErrCode = av_bsf_receive_packet(m_pAVBsfc.get(), m_FilterPacket);
+		nErrCode = ::av_bsf_receive_packet(m_pAVBsfc.get(), m_FilterPacket.get());
 		if (nErrCode == AVERROR(EAGAIN)) {
 			break;
 		} else if (nErrCode == AVERROR_EOF) {
@@ -335,8 +341,8 @@ void CuvidImpl::__DemuxH26X(AVPacket &packet, bool &bEoF) {
 			throw nErrCode;
 		}
 		m_nNumDecoded += (uint32_t)m_pDecoder->Decode(
-			m_FilterPacket.get().data, m_FilterPacket.get().size, (int)bEoF,
-			m_FilterPacket.get().pts * 1000 * m_dTimeBase);
+			m_FilterPacket->data, m_FilterPacket->size, (int)bEoF,
+			m_FilterPacket->pts * 1000 * m_dTimeBase);
 	}
 }
 
@@ -360,46 +366,45 @@ void CuvidImpl::__DemuxMPG4(AVPacket &packet, bool &bEoF) {
 		packet.pts * 1000 * m_dTimeBase);
 }
 
-int64_t CuvidImpl::__DecodeFrame(cv::cuda::GpuMat &gpuImg) {
+int64_t CuvidImpl::__DecodeFrame(GpuBuffer &gpuImg) {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 
 	auto frameFormat = m_pDecoder->GetOutputFormat();
-	cv::Size imgSize(m_pDecoder->GetWidth(), m_pDecoder->GetHeight());
-	size_t nPitch = imgSize.width * 4;
-	size_t nImgBytes = imgSize.height * nPitch;
+	auto nWidth = m_pDecoder->GetWidth();
+	auto nHeight = m_pDecoder->GetHeight();
+	size_t nPitch = nWidth * 4;
+	size_t nBgraBytes = nHeight * nPitch;
 	uint8_t iMatrix = m_pDecoder->GetVideoFormatInfo()
 			.video_signal_description.matrix_coefficients;
 	int64_t nTimeStamp;
 	uint8_t *pSrc = m_pDecoder->GetFrame(&nTimeStamp);
 	CHECK_NOTNULL(pSrc);
 
-	if (m_BgraBuf.size() != imgSize || m_BgraBuf.channels() != 4
-			|| m_BgraBuf.type() != CV_8UC4) {
-		m_BgraBuf = cv::cuda::GpuMat(imgSize, CV_8UC4);
+	if (m_BgraBuf.size() != nBgraBytes) {
+		m_BgraBuf.resize(nBgraBytes);
 	}
-	uint8_t *pRGBATmp = m_BgraBuf.ptr<uint8_t>();
+	auto pRGBATmp = (uint8_t*)m_BgraBuf.get();
 	if (m_pDecoder->GetBitDepth() == 8) {
 		if (frameFormat == cudaVideoSurfaceFormat_YUV444) {
-			::YUV444ToColor32<BGRA32>(pSrc, imgSize.width, pRGBATmp,
-					nPitch, imgSize.width, imgSize.height, iMatrix);
+			::YUV444ToColor32<BGRA32>(pSrc, nWidth, pRGBATmp,
+					nPitch, nWidth, nHeight, iMatrix);
 		} else {
-			::Nv12ToColor32<BGRA32>(pSrc, imgSize.width, pRGBATmp,
-					nPitch, imgSize.width, imgSize.height, iMatrix);
+			::Nv12ToColor32<BGRA32>(pSrc, nWidth, pRGBATmp,
+					nPitch, nWidth, nHeight, iMatrix);
 		}
 	} else {
 		if (frameFormat == cudaVideoSurfaceFormat_YUV444) {
-			::YUV444P16ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pRGBATmp,
-					nPitch, imgSize.width, imgSize.height, iMatrix);
+			::YUV444P16ToColor32<BGRA32>(pSrc, 2 * nWidth, pRGBATmp,
+					nPitch, nWidth, nHeight, iMatrix);
 		} else {
-			::P016ToColor32<BGRA32>(pSrc, 2 * imgSize.width, pRGBATmp,
-					nPitch, imgSize.width, imgSize.height, iMatrix);
+			::P016ToColor32<BGRA32>(pSrc, 2 * nWidth, pRGBATmp,
+					nPitch, nWidth, nHeight, iMatrix);
 		}
 	}
-	if (gpuImg.size() != imgSize || gpuImg.channels() != 3
-			|| gpuImg.type() != CV_8UC3) {
-		gpuImg = cv::cuda::GpuMat(imgSize, CV_8UC3);
+	if (gpuImg.size() != nWidth * nHeight * 3) {
+		gpuImg.resize(nWidth * nHeight * 3);
 	}
-	::BGRA32ToBgr24(m_BgraBuf.data, gpuImg.data, imgSize.width, imgSize.height,
-			gpuImg.step);
+	::BGRA32ToBgr24((uint8_t*)m_BgraBuf.get(), (uint8_t*)gpuImg.get(),
+			nWidth, nHeight, nWidth * 3);
 	return nTimeStamp;
 }
