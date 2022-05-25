@@ -24,17 +24,20 @@ class Cuvid:
         frame_id, time_stamp, img = cuvid.cuvid_read_as_numpy(self._cuvid)
         return (frame_id, time_stamp, img)
 
-    def read_to_tensor(self, tensor):
+    def read_to_tensor(self, tensor = None):
         import torch
         if not hasattr(self, 'device'):
             self.device = torch.device(f'cuda:{self.gpu_id}')
-        if tensor.device != self.device:
-            tensor.to(self.device)
-        if tensor.dtype != torch.uint8:
-            tensor = tensor.to(torch.uint8)
+        if tensor is None:
+            tensor = torch.empty(self.frame_shape(), dtype=torch.uint8, device=self.device)
+        else:
+            if tensor.device != self.device:
+                tensor = tensor.to(self.device)
+            if tensor.dtype != torch.uint8:
+                tensor = tensor.to(torch.uint8)
         if not tensor.is_contiguous():
             tensor = tensor.contiguous()
         tensor_size = tensor.element_size() * tensor.nelement()
         frame_id, time_stamp = cuvid.cuvid_read_to_buffer(self._cuvid,
                 tensor.data_ptr(), tensor_size)
-        return (frame_id, time_stamp)
+        return (frame_id, time_stamp, tensor)

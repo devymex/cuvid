@@ -12,11 +12,11 @@ print(dec.frame_shape())
 
 if use_torch:
     import torch
-    buf = torch.zeros(dec.frame_shape(), dtype=torch.uint8).to(f'cuda:{gpu_id}')
+    buf = None
 
 while True:
     if use_torch:
-       frame_id, timestamp = dec.read_to_tensor(buf)
+        frame_id, timestamp, buf = dec.read_to_tensor(buf)
     else:
         frame_id, timestamp, buf = dec.read_as_numpy()
 
