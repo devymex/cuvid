@@ -4,8 +4,8 @@
 			"name": "Linux",
 			"includePath": [
 				"${workspaceFolder}/src",
-				"/root/anaconda3/lib/python3.8/site-packages/numpy/core/include",
-				"/root/anaconda3/include/python3.8",
+				"/home/devymex/miniconda3/lib/python3.9/site-packages/numpy/core/include",
+				"/home/devymex/miniconda3/include/python3.9",
 				"/usr/local/cuda/targets/x86_64-linux/include",
 				"/usr/local/include/opencv4",
 				"/usr/local/include",
@@ -14,7 +14,7 @@
 			"defines": [
 				"VERBOSE_LOG"
 			],
-			"compilerPath": "/usr/bin/g++-7",
+			"compilerPath": "/usr/bin/g++",
 			"cStandard": "c11",
 			"cppStandard": "c++17",
 			"intelliSenseMode": "clang-x64"

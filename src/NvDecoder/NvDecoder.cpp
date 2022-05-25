@@ -16,7 +16,7 @@
 #include "nvcuvid.h"
 #include "NvDecoder.h"
 
-#define START_TIMER auto start = std::chrono::high_resolution_clock::now();
+#define START_TIMER std::chrono::high_resolution_clock::now();
 #define STOP_TIMER(print_message) std::cout << print_message << \
     std::chrono::duration_cast<std::chrono::milliseconds>( \
     std::chrono::high_resolution_clock::now() - start).count() \
@@ -49,7 +49,7 @@ static const char * GetVideoCodecString(cudaVideoCodec eCodec) {
     if (eCodec >= 0 && eCodec <= cudaVideoCodec_NumCodecs) {
         return aCodecName[eCodec].name;
     }
-    for (int i = cudaVideoCodec_NumCodecs + 1; i < sizeof(aCodecName) / sizeof(aCodecName[0]); i++) {
+    for (uint64_t i = cudaVideoCodec_NumCodecs + 1; i < sizeof(aCodecName) / sizeof(aCodecName[0]); i++) {
         if (eCodec == aCodecName[i].eCodec) {
             return aCodecName[eCodec].name;
         }
@@ -215,7 +215,7 @@ int NvDecoder::HandleVideoSequence(CUVIDEOFORMAT *pVideoFormat)
             m_eOutputFormat = cudaVideoSurfaceFormat_YUV444;
         else if (decodecaps.nOutputFormatMask & (1 << cudaVideoSurfaceFormat_YUV444_16Bit))
             m_eOutputFormat = cudaVideoSurfaceFormat_YUV444_16Bit;
-        else 
+        else
             NVDEC_THROW_ERROR("No supported output format found", CUDA_ERROR_NOT_SUPPORTED);
     }
     m_videoFormat = *pVideoFormat;
@@ -236,9 +236,9 @@ int NvDecoder::HandleVideoSequence(CUVIDEOFORMAT *pVideoFormat)
     videoDecodeCreateInfo.vidLock = m_ctxLock;
     videoDecodeCreateInfo.ulWidth = pVideoFormat->coded_width;
     videoDecodeCreateInfo.ulHeight = pVideoFormat->coded_height;
-    if (m_nMaxWidth < (int)pVideoFormat->coded_width)
+    if (m_nMaxWidth < pVideoFormat->coded_width)
         m_nMaxWidth = pVideoFormat->coded_width;
-    if (m_nMaxHeight < (int)pVideoFormat->coded_height)
+    if (m_nMaxHeight < pVideoFormat->coded_height)
         m_nMaxHeight = pVideoFormat->coded_height;
     videoDecodeCreateInfo.ulMaxWidth = m_nMaxWidth;
     videoDecodeCreateInfo.ulMaxHeight = m_nMaxHeight;
@@ -559,7 +559,7 @@ int NvDecoder::HandlePictureDisplay(CUVIDPARSERDISPINFO *pDispInfo) {
     return 1;
 }
 
-NvDecoder::NvDecoder(CUcontext cuContext, bool bUseDeviceFrame, cudaVideoCodec eCodec, bool bLowLatency, 
+NvDecoder::NvDecoder(CUcontext cuContext, bool bUseDeviceFrame, cudaVideoCodec eCodec, bool bLowLatency,
     bool bDeviceFramePitched, const Rect *pCropRect, const Dim *pResizeDim, int maxWidth, int maxHeight, unsigned int clkRate) :
     m_cuContext(cuContext), m_bUseDeviceFrame(bUseDeviceFrame), m_eCodec(eCodec), m_bDeviceFramePitched(bDeviceFramePitched),
     m_nMaxWidth (maxWidth), m_nMaxHeight(maxHeight)
@@ -657,13 +657,13 @@ uint8_t* NvDecoder::GetLockedFrame(int64_t* pTimestamp)
         m_nDecodedFrame--;
         pFrame = m_vpFrame[0];
         m_vpFrame.erase(m_vpFrame.begin(), m_vpFrame.begin() + 1);
-        
+
         timestamp = m_vTimestamp[0];
         m_vTimestamp.erase(m_vTimestamp.begin(), m_vTimestamp.begin() + 1);
-        
+
         if (pTimestamp)
             *pTimestamp = timestamp;
-        
+
         return pFrame;
     }
 
@@ -674,7 +674,7 @@ void NvDecoder::UnlockFrame(uint8_t **pFrame)
 {
     std::lock_guard<std::mutex> lock(m_mtxVPFrame);
     m_vpFrame.insert(m_vpFrame.end(), &pFrame[0], &pFrame[1]);
-    
+
     // add a dummy entry for timestamp
     uint64_t timestamp[2] = {0};
     m_vTimestamp.insert(m_vTimestamp.end(), &timestamp[0], &timestamp[1]);

@@ -11,7 +11,7 @@
 			"program": "${workspaceFolder}/build/cuvid_test",
 			"args": [
 				//"\"rtsp://admin:Admin123@192.168.1.64:554/h264/ch1/main/av_stream\""
-				"/data/bzj/nasa_videos/211021/211021_000001_0.mp4"
+				"/home/devymex/Videos/xll.mp4"
 			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",

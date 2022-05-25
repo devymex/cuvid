@@ -21,6 +21,12 @@ sudo apt install libgoogle-glog-dev libgflags-dev libssl-dev
 ### 2.2. CMake
 
 ```bash
+sudo apt install cmake
+```
+
+Or
+
+```bash
 sudo apt remove cmake
 wget https://github.com/Kitware/CMake/releases/download/v3.18.4/cmake-3.18.4.tar.gz
 tar -xvf cmake-3.18.4.tar.gz
@@ -47,10 +53,9 @@ sudo apt install ffmpeg
 python3 -m pip install numpy
 ```
 
-### 2.6. OpenCV
+### 2.6. Pytorch (Optional)
 
-需 OpenCV 4.x 或以上版本。安装方法详见：
-https://zhuanlan.zhihu.com/p/392751819
+See https://pytorch.org/
 
 ## 3. Build
 

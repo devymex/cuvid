@@ -1,6 +1,7 @@
 #ifndef __CUVID_IMPL_HPP
 #define __CUVID_IMPL_HPP
 
+#include "../include/gpubuf.hpp"
 #include "semaphore.hpp"
 #include "NvDecoder/NvDecoder.h"
 
@@ -8,10 +9,6 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 }
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/cuda.hpp>
-#include <nvjpeg.h>
 
 #include <atomic>
 #include <mutex>
@@ -34,32 +31,36 @@ extern "C" {
 			" failed: err_code=" << e; \
 	}}
 
-struct PACKET {
-	AVPacket _packet;
-	PACKET() {
-		_packet.data = nullptr;
-		_packet.size = 0;
-		av_init_packet(&_packet);
-	}
-	~PACKET() {
-		av_packet_unref(&_packet);
+struct AVPacketUnref {
+    void operator()(AVPacket *pPacket) const {
+        av_packet_unref(pPacket);
+    }
+};
+
+struct AVPACKET {
+	std::unique_ptr<AVPacket, AVPacketUnref> m_pPacket;
+	AVPACKET() {
+		m_pPacket.reset(av_packet_alloc());
 	}
 
 	void reset() {
-		av_packet_unref(&_packet);
-		av_init_packet(&_packet);
+		m_pPacket.reset(av_packet_alloc());
 	}
 
-	operator AVPacket* () {
-		return &_packet;
+	AVPacket* operator->() {
+		return m_pPacket.get();
 	}
 
-	AVPacket& get() {
-		return _packet;
+	AVPacket* get() {
+		return m_pPacket.get();
 	}
 
-	PACKET(const PACKET &) = delete;
-	PACKET& operator =(const PACKET &) = delete;
+	AVPacket& operator*() {
+		return *m_pPacket;
+	}
+
+	AVPACKET(const AVPACKET &) = delete;
+	AVPACKET& operator =(const AVPACKET &) = delete;
 };
 
 // Python RTSP AV Nvidia Decoder
@@ -75,14 +76,14 @@ public:
 
 	void close();
 
-	double get(cv::VideoCaptureProperties prop) const;
+	double get(int nProp) const;
 
 	int32_t errcode() const;
 
-	std::pair<int64_t, int64_t> read(cv::cuda::GpuMat &frameImg, uint32_t nTimeoutUS = 0);
+	std::pair<int64_t, int64_t> read(GpuBuffer &frameImg, uint32_t nTimeoutUS = 0);
 
 private:
-	int64_t __DecodeFrame(cv::cuda::GpuMat &gpuImg);
+	int64_t __DecodeFrame(GpuBuffer &gpuImg);
 
 	void __WorkerProc();
 
@@ -100,7 +101,6 @@ private:
 	std::unique_ptr<NvDecoder> m_pDecoder;
 	std::shared_ptr<AVFormatContext> m_pAVCtx;
 	std::shared_ptr<AVBSFContext> m_pAVBsfc;
-	cv::cuda::GpuMat m_BgraBuf;
 
 	// Video Info
 	int m_nStreamId;
@@ -109,20 +109,21 @@ private:
 
 	// Video temp date
 	std::vector<uint8_t> m_Mp4Hdr;
-	PACKET m_FilterPacket;
+	AVPACKET m_FilterPacket;
 
 	// Producer & Customer
 	int64_t m_nLastCursor;
 	std::atomic<int64_t> m_nCursor;
 	std::atomic<int64_t> m_nTimeStamp;
-	std::atomic<uint64_t> m_nNumDecoded;
+	std::atomic<int64_t> m_nNumDecoded;
 	std::atomic<int32_t> m_nErrCode;
-	cv::cuda::GpuMat m_WorkingBuf;
-	cv::cuda::GpuMat m_ReadingBuf;
 	std::mutex m_ReadingMutex;
 	semaphore m_WorkingSema;
 	semaphore m_ReadingSema;
 	std::future<void> m_Worker;
+	GpuBuffer m_BgraBuf;
+	GpuBuffer m_WorkingBuf;
+	GpuBuffer m_ReadingBuf;
 };
 
 #endif //__CUVID_IMPL_HPP
