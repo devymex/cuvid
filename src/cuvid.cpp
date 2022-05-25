@@ -25,9 +25,24 @@ int32_t Cuvid::errcode() const {
 }
 
 std::pair<int64_t, int64_t> Cuvid::read(GpuBuffer &frameImg, uint32_t nTimeoutUS) {
-	return m_pImpl->read(frameImg, nTimeoutUS);
+	auto ret = m_pImpl->read(m_InnerBuf, nTimeoutUS);
+	if (ret.first != -1) {
+		if (frameImg.device_id() != m_InnerBuf.device_id() ||
+				frameImg.size() != m_InnerBuf.size()) {
+			m_InnerBuf.copy_to(frameImg);
+		} else {
+			m_InnerBuf.swap(frameImg);
+		}
+	}
+	return ret;
 }
 
-std::pair<int64_t, int64_t> Cuvid::read(uint32_t nTimeoutUS) {
-	return read(m_DefBuf, nTimeoutUS);
+std::pair<int64_t, int64_t> Cuvid::read(GpuBuffer &&frameImg, uint32_t nTimeoutUS) {
+	auto ret = m_pImpl->read(m_InnerBuf, nTimeoutUS);
+	if (ret.first != -1) {
+		CHECK_EQ(frameImg.device_id(), m_InnerBuf.device_id());
+		CHECK_EQ(frameImg.size(), m_InnerBuf.size());
+		m_InnerBuf.copy_to(frameImg);
+	}
+	return ret;
 }

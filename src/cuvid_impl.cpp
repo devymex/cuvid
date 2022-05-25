@@ -383,7 +383,7 @@ int64_t CuvidImpl::__DecodeFrame(GpuBuffer &gpuImg) {
 	CHECK_NOTNULL(pSrc);
 
 	if ((int64_t)m_BgraBuf.size() != nBgraBytes) {
-		m_BgraBuf.resize(nBgraBytes);
+		m_BgraBuf.realloc(nBgraBytes);
 	}
 	auto pRGBATmp = (uint8_t*)m_BgraBuf.get();
 	if (m_pDecoder->GetBitDepth() == 8) {
@@ -404,7 +404,7 @@ int64_t CuvidImpl::__DecodeFrame(GpuBuffer &gpuImg) {
 		}
 	}
 	if ((int64_t)gpuImg.size() != nWidth * nHeight * 3) {
-		gpuImg.resize(nWidth * nHeight * 3);
+		gpuImg.realloc(nWidth * nHeight * 3);
 	}
 	::BGRA32ToBgr24((uint8_t*)m_BgraBuf.get(), (uint8_t*)gpuImg.get(),
 			nWidth, nHeight, nWidth * 3);

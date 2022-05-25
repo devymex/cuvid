@@ -10,7 +10,7 @@
 class CuvidImpl;
 class Cuvid {
 private:
-	GpuBuffer m_DefBuf;
+	GpuBuffer m_InnerBuf;
 	std::unique_ptr<CuvidImpl> m_pImpl;
 
 public:
@@ -25,15 +25,11 @@ public:
 	double get(int nProp) const;
 	int32_t errcode() const;
 	std::pair<int64_t, int64_t> read(GpuBuffer &frameImg, uint32_t nTimeoutUS = 0);
-	std::pair<int64_t, int64_t> read(uint32_t nTimeoutUS = 0);
-
-	constexpr const GpuBuffer& get_default_buffer() const {
-		return m_DefBuf;
-	}
+	std::pair<int64_t, int64_t> read(GpuBuffer &&frameImg, uint32_t nTimeoutUS = 0);
 
 private:
-	Cuvid(const GpuBuffer &other) = delete;
-	Cuvid(GpuBuffer &&other) = delete;
+	Cuvid(const Cuvid &other) = delete;
+	Cuvid(Cuvid &&other) = delete;
 	Cuvid& operator=(const Cuvid &other) = delete;
 	Cuvid& operator=(Cuvid &&other) = delete;
 };

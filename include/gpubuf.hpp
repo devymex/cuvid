@@ -9,20 +9,24 @@ class GpuBuffer {
 private:
 	void *m_ptr;
 	size_t m_nSize;
-	bool m_bOwn;
+	bool m_bOwner;
+	int m_nDevId;
 
 public:
 	GpuBuffer();
 	GpuBuffer(size_t nSize);
-	GpuBuffer(void *ptr, size_t nSize);
+	GpuBuffer(void *ptr, size_t nSize, int nDevId = -1);
 	~GpuBuffer();
 
+	void realloc(size_t nSize, int nDevId = -1);
 	void copy_to(GpuBuffer &other) const;
 	void to_vector(std::vector<uint8_t> &vec) const;
-	void resize(size_t nSize);
 	void swap(GpuBuffer& other);
+	void clear();
 
-	void* get();
+	constexpr void* get() {
+		return m_ptr;
+	}
 	constexpr const void* get() const {
 		return m_ptr;
 	}
@@ -32,8 +36,11 @@ public:
 	constexpr bool empty() const {
 		return m_ptr == nullptr;
 	}
-	constexpr bool owns_memory() const {
-		return m_bOwn;
+	constexpr bool is_owner() const {
+		return m_bOwner;
+	}
+	constexpr int device_id() const {
+		return m_nDevId;
 	}
 
 private:

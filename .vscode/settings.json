@@ -1,10 +1,6 @@
 {
     "cmake.configureArgs": [
         "-DCMAKE_VERBOSE_MAKEFILE=ON",
-        "-DCMAKE_INSTALL_PREFIX=build/install",
-        "-DCUDA_nvcuvid_LIBRARY=/usr/local/cuda-11.1/targets/x86_64-linux/lib/libnvcuvid.so"
-    ],
-    "files.associations": {
-        "atomic": "cpp"
-    }
+        "-DCMAKE_INSTALL_PREFIX=build/install"
+    ]
 }

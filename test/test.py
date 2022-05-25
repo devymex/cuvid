@@ -2,7 +2,7 @@
 import sys, cuvid, torch
 
 gpu_id = 0
-use_torch = False
+use_torch = True
 
 rtsp_url = sys.argv[1]
 
