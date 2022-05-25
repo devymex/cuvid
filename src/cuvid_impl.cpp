@@ -17,7 +17,7 @@ extern "C" {
 struct AVINIT {
 	AVINIT() {
 #if LIBAVCODEC_VERSION_MAJOR < 58
-		::avcodec_register_all();
+		::av_register_all();
 #endif
 		CHECK_GE(::avformat_network_init(), 0);
 	}

@@ -16,7 +16,7 @@
 #include "nvcuvid.h"
 #include "NvDecoder.h"
 
-#define START_TIMER std::chrono::high_resolution_clock::now();
+#define START_TIMER auto start = std::chrono::high_resolution_clock::now();
 #define STOP_TIMER(print_message) std::cout << print_message << \
     std::chrono::duration_cast<std::chrono::milliseconds>( \
     std::chrono::high_resolution_clock::now() - start).count() \
