@@ -5,13 +5,13 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "cuvid_test",
+			"name": "gdb: cuvid_test",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/cuvid_test",
 			"args": [
 				//"\"rtsp://admin:Admin123@192.168.1.64:554/h264/ch1/main/av_stream\""
-				"/home/devymex/Videos/xll.mp4"
+				"/data/bzj/nasa_videos/220506/220506_018440_0.mp4"
 			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
@@ -30,9 +30,8 @@
 					"ignoreFailures": true
 				}
 			]
-		},
-		{
-			"name": "test.py",
+		}, {
+			"name": "py: test.py",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "/home/wangyumeng02/anaconda3/bin/python3",
@@ -42,6 +41,32 @@
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
+		}, {
+			"name": "gdb: cuvid",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "/root/anaconda3/bin/python3",
+			"args": [
+				"test/test.py",
+				"/data/bzj/nasa_videos/220506/220506_000001_0.mp4"
+			],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [
+				{
+					"name": "LD_LIBRARY_PATH",
+					"value": "${workspaceFolder}/build:/usr/local/cuda/lib64:/usr/local/lib:/usr/lib/x86_64-linux-gnu:/usr/lib:/lib/x86_64-linux-gnu:/lib"
+				}
+			],
 			"externalConsole": false,
 			"MIMode": "gdb",
 			"setupCommands": [

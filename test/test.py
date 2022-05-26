@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys, cuvid, torch
+import sys, cuvid
 
 gpu_id = 0
 use_torch = True
