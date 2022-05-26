@@ -403,6 +403,8 @@ int64_t CuvidImpl::__DecodeFrame(GpuBuffer &gpuImg) {
 					nPitch, nWidth, nHeight, iMatrix);
 		}
 	}
+	auto err = ::cudaGetLastError();
+	CHECK_EQ(err, cudaSuccess) << ::cudaGetErrorString(err);
 	if ((int64_t)gpuImg.size() != nWidth * nHeight * 3) {
 		gpuImg.realloc(nWidth * nHeight * 3);
 	}
