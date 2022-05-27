@@ -318,8 +318,11 @@ void CuvidImpl::__WorkerProc() {
 		}
 	} catch (int32_t nErrCode) {
 		m_nErrCode = nErrCode;
+	} catch (dmlc::Error &e) {
+		LOG(WARNING) << "Fatal Error: " << e.what();
+		m_nErrCode = AVERROR_BUG; // AVERROR(EINTR)
 	} catch (...) {
-		m_nErrCode = AVERROR(EINTR);
+		m_nErrCode = AVERROR_UNKNOWN;
 	}
 	m_ReadingSema.unlock();
 }

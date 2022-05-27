@@ -5,9 +5,18 @@ PROJECT(cuvid LANGUAGES CXX)
 # ------------
 OPTION(WITH_PYTHON3 "Build with Python3 interface" ON)
 OPTION(BUILD_TEST "Build test app" ON)
-SET(CUDA_ARCHITECTURES "86" CACHE STRING "Target architecture")
+SET(CUDA_ARCHITECTURES "" CACHE STRING "Target device architecture")
 SET(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc" CACHE STRING "CUDA compiler")
 SET(NVCUVID_LIBRARY_DIR "/usr/lib/x86_64-linux-gnu" CACHE STRING "Directory of CUDA nvcuvid library")
+
+IF(CUDA_ARCHITECTURES STREQUAL "")
+    MESSAGE(FATAL_ERROR "CUDA_ARCHITECTURES must be set")
+ENDIF()
+
+FIND_LIBRARY(NVCUVID_LIBRARY NAMES nvcuvid PATHS ${NVCUVID_LIBRARY_DIR})
+IF(NOT NVCUVID_LIBRARY)
+    MESSAGE(FATAL_ERROR "nvcuvid1 library not found")
+ENDIF()
 
 # Basic Settings
 # --------------
