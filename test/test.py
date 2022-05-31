@@ -2,17 +2,18 @@
 import sys, cuvid
 
 gpu_id = 0
-use_torch = True
-
 rtsp_url = sys.argv[1]
+if len(sys.argv) > 2 and sys.argv[2] == "--torch":
+    import torch
+    use_torch = True
+    buf = None
+else:
+    import numpy as np
+    use_torch = False
 
 dec = cuvid.Cuvid(gpu_id)
 ret = dec.open(rtsp_url)
 print(dec.frame_shape())
-
-if use_torch:
-    import torch
-    buf = None
 
 while True:
     if use_torch:
