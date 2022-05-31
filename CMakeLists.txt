@@ -15,7 +15,7 @@ ENDIF()
 
 FIND_LIBRARY(NVCUVID_LIBRARY NAMES nvcuvid PATHS ${NVCUVID_LIBRARY_DIR})
 IF(NOT NVCUVID_LIBRARY)
-    MESSAGE(FATAL_ERROR "nvcuvid1 library not found")
+    MESSAGE(FATAL_ERROR "nvcuvid library not found")
 ENDIF()
 
 # Basic Settings
