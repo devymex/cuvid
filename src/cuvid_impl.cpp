@@ -321,7 +321,14 @@ void CuvidImpl::__WorkerProc() {
 	} catch (dmlc::Error &e) {
 		LOG(WARNING) << "Fatal Error: " << e.what();
 		m_nErrCode = AVERROR_BUG; // AVERROR(EINTR)
+	} catch (NVDECException &e) {
+		LOG(WARNING) << "NVDecoder Error: " << e.what();
+		m_nErrCode = AVERROR(ENOMEM);
+	} catch (std::exception &e) {
+		LOG(WARNING) << "C++ Exception: " << e.what();
+		m_nErrCode = AVERROR(EINTR); // AVERROR(EINTR)
 	} catch (...) {
+		LOG(WARNING) << "Unknown Error";
 		m_nErrCode = AVERROR_UNKNOWN;
 	}
 	m_ReadingSema.unlock();

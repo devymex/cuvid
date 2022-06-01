@@ -79,7 +79,13 @@ PyObject* CuvidReadAsNumpy(PyObject *self, PyObject *pArgs) {
 	CHECK_NOTNULL(pCuvid);
 
 	GpuBuffer gpuBuf;
-	auto [nFrameCnt, nTimeStamp] = pCuvid->read(gpuBuf);
+	int64_t nFrameCnt ,nTimeStamp;
+	try {
+		std::tie(nFrameCnt, nTimeStamp) = pCuvid->read(gpuBuf);
+	} catch (dmlc::Error &e) {
+		PyErr_SetString(PyExc_RuntimeError, e.what());
+		Py_RETURN_NONE;
+	}
 	std::vector<uint8_t> cpuBuf;
 	gpuBuf.to_vector(cpuBuf);
 
@@ -110,7 +116,13 @@ PyObject* CuvidReadToBuffer(PyObject *self, PyObject *pArgs) {
 			<< pCuvid->get(8) << " but got " << nBufSize;
 
 	unsigned long nPtr64 = nBufPtr;
-	auto [nFrameCnt, nTimeStamp] = pCuvid->read(GpuBuffer((void*)nPtr64, nBufSize));
+	int64_t nFrameCnt ,nTimeStamp;
+	try {
+		std::tie(nFrameCnt, nTimeStamp) = pCuvid->read(GpuBuffer((void*)nPtr64, nBufSize));
+	} catch (dmlc::Error &e) {
+		PyErr_SetString(PyExc_RuntimeError, e.what());
+		Py_RETURN_NONE;
+	}
 	auto pRet = PyTuple_Pack(2, PyLong_FromLong(nFrameCnt),
 			PyLong_FromLong(nTimeStamp));
 	return pRet;
