@@ -94,12 +94,10 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	AVFormatContext *pAVCtxRaw = nullptr;
 	auto nErrCode = ::avformat_open_input(&pAVCtxRaw, strURL.c_str(), nullptr, &pDict);
 	if (nErrCode != 0) {
-#ifdef VERBOSE_LOG
 		char sz[1024] = {0};
 		::av_make_error_string(sz, 1024, nErrCode);
 		LOG(WARNING) << "Can't open stream: \"" << strURL
 					 << "\", err_code=" << nErrCode << ", msg=" << sz;
-#endif
 		return false;
 	}
 	m_pAVCtx.reset(pAVCtxRaw, &::DestroyAVContext);
