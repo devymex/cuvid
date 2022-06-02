@@ -8,8 +8,8 @@ Cuvid::Cuvid(int nGpuID) {
 Cuvid::~Cuvid() {
 }
 
-bool Cuvid::open(const std::string &strURL, READ_MODE readMode) {
-	return m_pImpl->open(strURL, CuvidImpl::READ_MODE(readMode));
+bool Cuvid::open(const std::string &strURL, READ_MODE readMode, uint32_t nTimeoutMS) {
+	return m_pImpl->open(strURL, CuvidImpl::READ_MODE(readMode), nTimeoutMS);
 }
 
 void Cuvid::close() {

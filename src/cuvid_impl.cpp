@@ -82,7 +82,7 @@ CuvidImpl::~CuvidImpl() {
 	CUDA_CHECK(::cudaSetDevice(m_nGpuID));
 }
 
-bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
+bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode, uint32_t nTimeoutMS) {
 	if (m_Worker.valid()) {
 		auto nWaitRes = m_Worker.wait_for(std::chrono::seconds(0));
 		CHECK(nWaitRes != std::future_status::timeout);
@@ -91,6 +91,11 @@ bool CuvidImpl::open(const std::string &strURL, READ_MODE readMode) {
 	// -------------------
 	AVDictionary *pDict = nullptr;
 	CHECK_GE(::av_dict_set(&pDict, "rtsp_transport", "tcp", 0), 0);
+	if (nTimeoutMS > 0) {
+		auto strTimeout = std::to_string(nTimeoutMS);
+		CHECK_GE(::av_dict_set(&pDict, "timeout", strTimeout.c_str(), 0), 0);
+	}
+
 	AVFormatContext *pAVCtxRaw = nullptr;
 	auto nErrCode = ::avformat_open_input(&pAVCtxRaw, strURL.c_str(), nullptr, &pDict);
 	if (nErrCode != 0) {

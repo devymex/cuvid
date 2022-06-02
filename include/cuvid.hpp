@@ -20,7 +20,7 @@ public:
 	Cuvid(int nGpuID);
 	~Cuvid();
 
-	bool open(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO);
+	bool open(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO, uint32_t nTimeoutMS = 0);
 	void close();
 	double get(int nProp) const;
 	int32_t errcode() const;

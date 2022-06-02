@@ -72,7 +72,7 @@ public:
 
 	~CuvidImpl();
 
-	bool open(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO);
+	bool open(const std::string &strURL, READ_MODE readMode = READ_MODE::AUTO, uint32_t nTimeoutMS = 0);
 
 	void close();
 
