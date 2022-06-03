@@ -1,6 +1,7 @@
 {
     "cmake.configureArgs": [
         "-DCMAKE_VERBOSE_MAKEFILE=ON",
-        "-DCMAKE_INSTALL_PREFIX=build/install"
+        "-DCMAKE_INSTALL_PREFIX=build/install",
+        "-DCUDA_ARCHITECTURES=86"
     ]
 }

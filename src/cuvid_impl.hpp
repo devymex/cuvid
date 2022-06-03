@@ -33,7 +33,7 @@ extern "C" {
 
 struct AVPacketUnref {
     void operator()(AVPacket *pPacket) const {
-        av_packet_unref(pPacket);
+        av_packet_free(&pPacket);
     }
 };
 

@@ -14,13 +14,13 @@ int main(int nArgCnt, char *ppArgs[]) {
 		CHECK_GE(nDevID, 0) << "Invalid GPU_ID";
 	}
 
-	Cuvid cuvid(nDevID);
-	CHECK(cuvid.open(ppArgs[1]));
-	std::cout << "Num frames: " << cuvid.get(7)
-			  << ", Resolution: " << cuvid.get(3) << "x" << cuvid.get(4)
-			  << ", FPS: " << cuvid.get(5) << std::endl;
+	std::unique_ptr<Cuvid> pCuvid(new Cuvid(nDevID));
+	CHECK(pCuvid->open(ppArgs[1]));
+	std::cout << "Num frames: " << pCuvid->get(7)
+			  << ", Resolution: " << pCuvid->get(3) << "x" << pCuvid->get(4)
+			  << ", FPS: " << pCuvid->get(5) << std::endl;
 	for (GpuBuffer frameBuf; ; ) {
-		auto [nFrameId, nTimeStamp] = cuvid.read(frameBuf);
+		auto [nFrameId, nTimeStamp] = pCuvid->read(frameBuf);
 		if (nFrameId < 0) {
 			break;
 		}
@@ -30,5 +30,7 @@ int main(int nArgCnt, char *ppArgs[]) {
 		LOG(INFO) << "[" << nFrameId << "] time: " << nTimeStamp
 				  << ", size: " << frameBuf.size();
 	}
+	pCuvid->close();
+	pCuvid.reset(nullptr);
 	return 0;
 }
